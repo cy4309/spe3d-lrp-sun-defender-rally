@@ -1,0 +1,28 @@
+{
+  "recommendations": [
+    // Claude
+    "anthropic.claude-code",
+
+    // Python / FastAPI
+    "ms-python.python",
+    "ms-python.vscode-pylance",
+    "ms-python.black-formatter",
+    "charliermarsh.ruff",
+
+    // TypeScript / React / Vite
+    "dbaeumer.vscode-eslint",
+    "esbenp.prettier-vscode",
+
+    // Docker
+    "ms-azuretools.vscode-docker",
+
+    // DB / SQL
+    "mtxr.sqltools",
+    "mtxr.sqltools-driver-pg",
+
+    // Markdown / 雜項
+    "yzhang.markdown-all-in-one",
+    "mikestead.dotenv",
+    "redhat.vscode-yaml"
+  ]
+}

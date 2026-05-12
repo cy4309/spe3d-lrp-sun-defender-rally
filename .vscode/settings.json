@@ -1,0 +1,92 @@
+{
+  "// === Python (apps/api, apps/worker) ===": "",
+  "python.analysis.typeCheckingMode": "basic",
+  "python.analysis.autoSearchPaths": true,
+  "python.analysis.extraPaths": [
+    "apps/api",
+    "apps/worker"
+  ],
+  "python.testing.pytestEnabled": true,
+  "python.testing.unittestEnabled": false,
+  "python.testing.pytestArgs": [
+    "apps/api/tests"
+  ],
+  "[python]": {
+    "editor.tabSize": 4,
+    "editor.formatOnSave": true,
+    "editor.defaultFormatter": "ms-python.black-formatter"
+  },
+
+  "// === TypeScript / React (apps/web) ===": "",
+  "typescript.tsdk": "apps/web/node_modules/typescript/lib",
+  "typescript.enablePromptUseWorkspaceTsdk": true,
+  "[typescript]": {
+    "editor.tabSize": 2,
+    "editor.formatOnSave": true,
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "[typescriptreact]": {
+    "editor.tabSize": 2,
+    "editor.formatOnSave": true,
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "[json]": {
+    "editor.tabSize": 2,
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "[jsonc]": {
+    "editor.tabSize": 2,
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+
+  "// === SQL / Markdown / Docker ===": "",
+  "[sql]": {
+    "editor.tabSize": 2
+  },
+  "[markdown]": {
+    "editor.wordWrap": "on",
+    "editor.tabSize": 2
+  },
+  "[dockercompose]": {
+    "editor.tabSize": 2
+  },
+  "[dockerfile]": {
+    "editor.tabSize": 2
+  },
+
+  "// === Editor 全域 ===": "",
+  "editor.rulers": [100, 120],
+  "editor.renderWhitespace": "boundary",
+  "files.eol": "\n",
+  "files.insertFinalNewline": true,
+  "files.trimTrailingWhitespace": true,
+  "files.associations": {
+    "*.env.*": "dotenv",
+    ".env.example": "dotenv"
+  },
+
+  "// === 排除搜尋 / 檔案樹 ===": "",
+  "search.exclude": {
+    "**/node_modules": true,
+    "**/dist": true,
+    "**/.vite": true,
+    "**/__pycache__": true,
+    "**/.pytest_cache": true,
+    "**/storage": true,
+    "**/.venv": true
+  },
+  "files.exclude": {
+    "**/__pycache__": true,
+    "**/.pytest_cache": true,
+    "**/*.pyc": true
+  },
+
+  "// === Claude / Anthropic extension ===": "",
+  "claude.workingDirectory": "${workspaceFolder}",
+  "claude.contextFiles": [
+    "CLAUDE.md",
+    "README.md",
+    "docs/01-roadmap.md",
+    "docs/PHASE4_KICKOFF.md"
+  ]
+}

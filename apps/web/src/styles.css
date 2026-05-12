@@ -1,0 +1,33 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html, body, #root {
+    @apply h-full;
+  }
+  body {
+    @apply bg-gray-100 text-gray-900 font-sans;
+  }
+}
+
+@layer components {
+  .btn {
+    @apply inline-flex items-center justify-center rounded-full px-6 py-3 text-[15px] font-semibold transition-opacity disabled:opacity-40 disabled:cursor-not-allowed;
+  }
+  .btn-primary {
+    @apply bg-brand-orange text-white active:opacity-80;
+  }
+  .btn-outline {
+    @apply bg-white text-brand-blue border-2 border-brand-blue;
+  }
+  .btn-block {
+    @apply flex w-full justify-center;
+  }
+  .card {
+    @apply bg-gray-50 border border-gray-200 rounded-xl p-4;
+  }
+  .spinner {
+    @apply rounded-full border-4 border-gray-200 border-t-brand-blue animate-spin;
+  }
+}

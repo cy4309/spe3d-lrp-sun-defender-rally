@@ -1,0 +1,49 @@
+# Env
+.env
+.env.local
+.env.*.local
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+.venv/
+venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Node
+node_modules/
+dist/
+.vite/
+.eslintcache
+
+# IDE
+# .vscode/ 全擋掉太重；保留團隊共享的設定檔，只擋個人 user-specific 檔
+.vscode/*
+!.vscode/settings.json
+!.vscode/extensions.json
+!.vscode/tasks.json
+!.vscode/launch.json
+.idea/
+*.swp
+.DS_Store
+
+# Docker volumes (local dev only)
+data/
+postgres-data/
+
+# Logs
+*.log
+logs/
+
+# Tunnel configs（含 authtoken，不可進版控）
+ngrok.yml
+.cloudflared/
+
+# Uploads / generated images（本地 storage）
+storage/
+uploads/
+generated/
