@@ -4,6 +4,7 @@ import ErrorPage from "@/pages/ErrorPage";
 import HomePage from "@/pages/HomePage";
 import ProcessingPage from "@/pages/ProcessingPage";
 import ResultPage from "@/pages/ResultPage";
+import SharePage from "@/pages/SharePage";
 import UploadPage from "@/pages/UploadPage";
 
 export default function App() {
@@ -15,6 +16,7 @@ export default function App() {
           <Route path="/upload" element={<UploadPage />} />
           <Route path="/processing/:jobId" element={<ProcessingPage />} />
           <Route path="/result" element={<ResultPage />} />
+          <Route path="/share" element={<SharePage />} />
           <Route path="/error" element={<ErrorPage />} />
           <Route path="*" element={<Navigate to="/error" replace />} />
         </Routes>

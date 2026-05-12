@@ -4,6 +4,7 @@ from __future__ import annotations
 from uuid import UUID, uuid4
 
 from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db import get_session
@@ -53,6 +54,10 @@ async def write_job_result(
     now = now_utc()
 
     if body.status == "succeeded":
+        # 冪等：若 job 已是 succeeded，直接回 OK（worker 重試保護）
+        if job.status == "succeeded":
+            return {"ok": True, "status": "succeeded"}
+
         job.status = "succeeded"
         job.output_image_path = body.output_image_path
         job.external_job_id = body.external_job_id
@@ -63,32 +68,36 @@ async def write_job_result(
         if uc and uc.status == "authorized":
             uc.status = "generated"
 
-        # 建 redeem_code（expires_at = campaign.ends_at）
+        # 建 redeem_code（expires_at = campaign.ends_at）；冪等：已存在則跳過
         campaign = await session.get(Campaign, uc.campaign_id) if uc else None
         if uc and campaign:
-            # 重試 N 次避免極小機率撞碼
-            code = None
-            for _ in range(5):
-                candidate = generate_redeem_code(8)
-                exists = await session.execute(
-                    RedeemCode.__table__.select().where(RedeemCode.code == candidate)
-                )
-                if exists.first() is None:
-                    code = candidate
-                    break
-            if code is None:
-                raise HTTPException(status_code=500, detail="redeem_code_collision")
-
-            rc = RedeemCode(
-                id=uuid4(),
-                user_campaign_id=uc.id,
-                code=code,
-                status="unused",
-                expires_at=campaign.ends_at,
-                created_at=now,
-                updated_at=now,
+            existing_rc = await session.scalar(
+                select(RedeemCode).where(RedeemCode.user_campaign_id == uc.id)
             )
-            session.add(rc)
+            if not existing_rc:
+                # 重試 N 次避免極小機率撞碼
+                code = None
+                for _ in range(5):
+                    candidate = generate_redeem_code(8)
+                    exists = await session.execute(
+                        RedeemCode.__table__.select().where(RedeemCode.code == candidate)
+                    )
+                    if exists.first() is None:
+                        code = candidate
+                        break
+                if code is None:
+                    raise HTTPException(status_code=500, detail="redeem_code_collision")
+
+                rc = RedeemCode(
+                    id=uuid4(),
+                    user_campaign_id=uc.id,
+                    code=code,
+                    status="unused",
+                    expires_at=campaign.ends_at,
+                    created_at=now,
+                    updated_at=now,
+                )
+                session.add(rc)
 
         await session.commit()
         return {"ok": True, "status": "succeeded"}
