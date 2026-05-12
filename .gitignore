@@ -20,6 +20,9 @@ dist/
 .vite/
 .eslintcache
 
+# Claude Code (local settings, not shared)
+.claude/settings.local.json
+
 # IDE
 # .vscode/ 全擋掉太重；保留團隊共享的設定檔，只擋個人 user-specific 檔
 .vscode/*
