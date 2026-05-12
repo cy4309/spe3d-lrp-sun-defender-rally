@@ -173,7 +173,7 @@ export default function SharePage() {
 
   return (
     <Layout
-      footer={
+      cta={
         <button
           className="btn btn-primary btn-block"
           onClick={handleShare}

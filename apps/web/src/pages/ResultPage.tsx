@@ -73,7 +73,7 @@ export default function ResultPage() {
 
   return (
     <Layout
-      footer={
+      cta={
         <button
           className="btn btn-primary btn-block"
           onClick={() => navigate("/share", { state: { result } })}
