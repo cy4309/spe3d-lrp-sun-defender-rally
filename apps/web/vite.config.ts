@@ -12,6 +12,7 @@ export default defineConfig({
   server: {
     host: "0.0.0.0",
     port: 5173,
+    allowedHosts: true,
     watch: {
       // Docker volumes 在某些 OS 不會觸發原生 fs event，polling workaround
       usePolling: true,
