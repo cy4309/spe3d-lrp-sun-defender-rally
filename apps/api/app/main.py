@@ -16,9 +16,14 @@ app = FastAPI(
     debug=settings.app_debug,
 )
 
+_dev_origins = [
+    "http://localhost:5173",
+    "http://localhost:3000",
+]
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"] if settings.app_debug else [],
+    allow_origins=_dev_origins if settings.app_debug else [],
+    allow_origin_regex=r"https://.*\.(ngrok-free\.app|trycloudflare\.com|pages\.dev)" if settings.app_debug else None,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

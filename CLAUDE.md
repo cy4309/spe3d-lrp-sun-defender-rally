@@ -158,7 +158,32 @@ docker compose up -d
 | `PHASE4_KICKOFF.md` | **下一階段任務拆分**，可直接餵 Claude 當提示 |
 | `0505 [啟雲科技] ...Line串接討論.pdf` | 與客戶的 LINE 串接會議資料 |
 
-## 9. 給 Claude 的工作守則
+## 9. 乙方 Webhook 串接（粉絲追蹤通知）
+
+乙方（LINE 官方帳號管理商）負責接收 LINE platform webhook，並將原始事件**原封不動**轉發至我方 API。
+
+**接收端點（待實作，Phase 6）：**
+
+```
+POST /api/v1/webhook/line-events
+Header: X-Partner-Token: <PARTNER_WEBHOOK_TOKEN>
+```
+
+- Body：LINE 原始 webhook JSON，**不需要篩選事件類型，全部轉發**
+- 我方自行判斷事件類型（`follow` / `unfollow` 處理，其餘忽略）
+- `PARTNER_WEBHOOK_TOKEN` 與 endpoint URL 我方負責產生後透過私密管道提供給乙方
+- Token 值不可寫死在程式碼，一律讀 `PARTNER_WEBHOOK_TOKEN` 環境變數
+
+**歸因邏輯：**
+LINE webhook 的 `follow` 事件只帶 `userId`，無法直接知道使用者是透過哪個活動追蹤。
+需在收到事件後，查 `user_campaigns` 表比對 `line_user_id`，判斷該用戶是否參加過本活動。
+
+**待辦：**
+- 實作 `apps/api/app/api/webhook.py` 路由
+- 在 `apps/api/app/main.py` 掛上 `/api/v1/webhook` prefix
+- 在 `.env.example` 與 `docs/06-env-example.md` 補 `PARTNER_WEBHOOK_TOKEN`
+
+## 10. 給 Claude 的工作守則
 
 - 動 schema 之前先問人，會牽動 `db/init.sql` 與 `apps/api/app/models.py` 兩處。
 - 動到 `auth.py` / `machine.py` / `me/channel-code` 這幾條路徑時，務必確認對應的 pytest 還能過：

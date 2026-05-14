@@ -64,6 +64,7 @@ export default function UploadPage() {
       form.append("image", file);
       form.append("user_campaign_id", userCampaignId);
       const data = await apiPostForm<{ job_id: string }>("/api/v1/jobs", form);
+      console.log("[upload] job created", data);
       navigate(`/processing/${data.job_id}`);
     } catch (e) {
       if (e instanceof ApiError && e.code === "job_already_in_progress") { navigate("/result"); return; }

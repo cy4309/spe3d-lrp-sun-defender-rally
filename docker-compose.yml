@@ -68,6 +68,8 @@ services:
       dockerfile: Dockerfile
     restart: unless-stopped
     env_file: .env
+    environment:
+      VITE_DEV_PROXY_TARGET: http://api:8000
     volumes:
       - ./apps/web:/app
       - /app/node_modules

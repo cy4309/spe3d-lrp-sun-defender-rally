@@ -1,11 +1,11 @@
 import { createContext, ReactNode, useContext, useEffect, useState } from "react";
 import { setAuthToken } from "@/lib/api";
-import { getIdToken, initLiff, login as liffLogin } from "@/lib/liff";
+import { getIdToken, getProfile, initLiff, login as liffLogin } from "@/lib/liff";
 
 const CAMPAIGN_CODE =
   (import.meta.env.VITE_CAMPAIGN_CODE as string) || "anthelios-2026-summer";
 const API_BASE =
-  (import.meta.env.VITE_API_BASE_URL as string) || "http://localhost:8000";
+  (import.meta.env.VITE_API_BASE_URL as string) || "";
 
 export type UserInfo = {
   id: string;
@@ -43,11 +43,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     (async () => {
       try {
         const { ok, mock, error } = await initLiff();
+        console.log("[auth] initLiff", { ok, mock, error });
         if (mock) { setState({ phase: "mock" }); return; }
         if (!ok) throw new Error(error ?? "LIFF 初始化失敗");
 
         await liffLogin();
+        const profile = await getProfile();
+        console.log("[auth] LINE profile", profile);
+
         const idToken = await getIdToken();
+        console.log("[auth] idToken", idToken ? `${idToken.slice(0, 20)}…` : null);
         if (!idToken) throw new Error("無法取得 ID Token，請重新從 LINE 進入活動");
 
         const entrySource =
@@ -73,6 +78,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (token) setAuthToken(token);
 
         const data = await res.json();
+        console.log("[auth] /auth/line response", data);
         setState({
           phase: "ready",
           user: data.user,

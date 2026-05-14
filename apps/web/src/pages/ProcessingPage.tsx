@@ -42,6 +42,7 @@ export default function ProcessingPage() {
     const poll = async () => {
       try {
         const data = await apiGet<JobResponse>(`/api/v1/jobs/${jobId}`);
+        console.log("[poll] job status", data);
         if (data.status === "succeeded") { stop(); navigate("/result"); }
         else if (data.status === "failed_final") { stop(); setCanRetry(data.can_retry ?? false); setFailed(true); }
       } catch { /* keep polling on transient errors */ }

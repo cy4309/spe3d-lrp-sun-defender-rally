@@ -2,7 +2,8 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Layout from "@/components/Layout";
 import { useAuth } from "@/contexts/AuthContext";
-import { apiPost } from "@/lib/api";
+import { apiPost, clearAuthToken } from "@/lib/api";
+import { logoutLiff } from "@/lib/liff";
 
 const CAMPAIGN_CODE =
   (import.meta.env.VITE_CAMPAIGN_CODE as string) || "anthelios-2026-summer";
@@ -12,7 +13,18 @@ export default function HomePage() {
   const navigate = useNavigate();
   const [agreed, setAgreed] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [reloginBusy, setReloginBusy] = useState(false);
   const isMock = auth.phase === "mock";
+
+  async function handleReloginLine() {
+    setReloginBusy(true);
+    try {
+      clearAuthToken();
+      await logoutLiff();
+    } finally {
+      window.location.reload();
+    }
+  }
 
   if (auth.phase === "loading") {
     return (
@@ -30,9 +42,31 @@ export default function HomePage() {
       <Layout>
         <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4 text-center px-4">
           <p className="text-red-500 text-sm">{auth.message}</p>
-          <button className="btn btn-primary" onClick={() => window.location.reload()}>
-            重試
-          </button>
+          {!isMock && (
+            <p className="text-gray-500 text-xs max-w-sm">
+              id_token 過期時，僅重整無法換新憑證。請先登出 LIFF 再載入頁面。
+            </p>
+          )}
+          <div className="flex flex-col gap-2 w-full max-w-xs">
+            {!isMock && (
+              <button
+                type="button"
+                className="btn btn-primary"
+                disabled={reloginBusy}
+                onClick={() => void handleReloginLine()}
+              >
+                {reloginBusy ? "處理中…" : "重新登入 LINE"}
+              </button>
+            )}
+            <button
+              type="button"
+              className="btn btn-outline"
+              disabled={reloginBusy}
+              onClick={() => window.location.reload()}
+            >
+              僅重新整理
+            </button>
+          </div>
         </div>
       </Layout>
     );

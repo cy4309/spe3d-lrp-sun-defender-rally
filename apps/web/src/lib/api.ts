@@ -1,4 +1,4 @@
-const API_BASE = (import.meta.env.VITE_API_BASE_URL as string) || "http://localhost:8000";
+const API_BASE = (import.meta.env.VITE_API_BASE_URL as string) || "";
 
 let _token: string | null = sessionStorage.getItem("access_token");
 
@@ -28,19 +28,21 @@ function authHeaders(): Record<string, string> {
 }
 
 async function handleResponse<T>(res: Response): Promise<T> {
+  const body = await res.json().catch(() => null);
   if (!res.ok) {
-    const body = await res.json().catch(() => null);
     const detail = body?.detail;
     const code =
       typeof detail === "object" ? detail?.code : typeof detail === "string" ? detail : `HTTP_${res.status}`;
     const msg = typeof detail === "object" ? detail?.message : undefined;
+    console.warn(`[api] ${res.status} ${res.url}`, body);
     throw new ApiError(res.status, code ?? `HTTP_${res.status}`, msg);
   }
-  return res.json() as Promise<T>;
+  console.log(`[api] ${res.url}`, body);
+  return body as T;
 }
 
 export async function apiGet<T>(path: string, params?: Record<string, string>): Promise<T> {
-  const url = new URL(`${API_BASE}${path}`);
+  const url = new URL(`${API_BASE}${path}`, window.location.origin);
   if (params) Object.entries(params).forEach(([k, v]) => url.searchParams.set(k, v));
   const res = await fetch(url.toString(), { headers: authHeaders() });
   return handleResponse<T>(res);
@@ -51,7 +53,7 @@ export async function apiPost<T>(
   body?: unknown,
   params?: Record<string, string>,
 ): Promise<T> {
-  const url = new URL(`${API_BASE}${path}`);
+  const url = new URL(`${API_BASE}${path}`, window.location.origin);
   if (params) Object.entries(params).forEach(([k, v]) => url.searchParams.set(k, v));
   const res = await fetch(url.toString(), {
     method: "POST",
