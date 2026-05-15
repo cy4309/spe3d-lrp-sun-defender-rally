@@ -3,9 +3,13 @@
 @tailwind utilities;
 
 @layer base {
-  html, body, #root {
+
+  html,
+  body,
+  #root {
     @apply h-full;
   }
+
   body {
     @apply bg-gray-100 text-gray-900 font-sans;
   }
@@ -15,19 +19,57 @@
   .btn {
     @apply inline-flex items-center justify-center rounded-full px-6 py-3 text-[15px] font-semibold transition-opacity disabled:opacity-40 disabled:cursor-not-allowed;
   }
+
   .btn-primary {
     @apply bg-brand-orange text-white active:opacity-80;
   }
+
   .btn-outline {
     @apply bg-white text-brand-blue border-2 border-brand-blue;
   }
+
   .btn-block {
     @apply flex w-full justify-center;
   }
+
   .card {
     @apply bg-gray-50 border border-gray-200 rounded-xl p-4;
   }
+
   .spinner {
     @apply rounded-full border-4 border-gray-200 border-t-brand-blue animate-spin;
+  }
+
+  .upload-page {
+    @apply text-gray-900;
+  }
+
+  .upload-title-main {
+    @apply text-[42px] font-black italic leading-none text-white;
+    text-shadow:
+      3px 3px 0 #0a4a8c,
+      -1px -1px 0 #0a4a8c,
+      1px -1px 0 #0a4a8c,
+      -1px 1px 0 #0a4a8c;
+    transform: skewX(-6deg);
+  }
+
+  .upload-title-sub {
+    @apply mt-1 text-[19px] font-black italic leading-tight text-[#f47a1f];
+    text-shadow:
+      2px 2px 0 #0a4a8c,
+      -1px -1px 0 #0a4a8c;
+    transform: skewX(-6deg);
+  }
+
+  .upload-checkbox {
+    @apply h-[18px] w-[18px] rounded border-2 border-gray-400 accent-[#f47a1f];
+  }
+
+  .upload-cta {
+    @apply rounded-full py-4 text-center text-[17px] font-black tracking-wide text-white;
+    background: linear-gradient(180deg, #ff8c2a 0%, #f47a1f 55%, #e86a10 100%);
+    border: 2px solid #fff;
+    box-shadow: 0 4px 12px rgba(244, 122, 31, 0.45);
   }
 }
