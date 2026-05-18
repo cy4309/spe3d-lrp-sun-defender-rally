@@ -11,9 +11,9 @@ export default {
       },
       fontFamily: {
         sans: [
+          '"Noto Sans TC"',
           "-apple-system",
           "BlinkMacSystemFont",
-          '"Segoe UI"',
           '"PingFang TC"',
           '"Microsoft JhengHei"',
           "sans-serif",
