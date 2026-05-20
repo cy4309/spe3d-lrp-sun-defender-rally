@@ -1,17 +1,30 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import Layout from "@/components/Layout";
 import { useAuth } from "@/contexts/AuthContext";
 import { apiGet } from "@/lib/api";
 
 const CAMPAIGN_CODE =
   (import.meta.env.VITE_CAMPAIGN_CODE as string) || "anthelios-2026-summer";
 
+const A = {
+  bg: "/assets/genai_done_qr_page/GenAI_donepage_bg.png",
+  slogan: "/assets/genai_done_qr_page/GenAI_donepage_slogan.png",
+  frame: "/assets/upload-gen-page/pic_genAI_frame.png",
+  logo: "/assets/landing-page-home/lp_logo.png",
+  baseball: "/assets/genai_done_qr_page/GenAI_donepage_QR_pic_baseball.png",
+  newUvair: "/assets/landing-page-home/landing-page_home_new_uvair.png",
+} as const;
+
 type MeResult = {
   user_campaign_id: string;
   status: string;
   result_image_url: string | null;
-  redeem_code: { code: string; qr_payload: string; status: string; expires_at: string } | null;
+  redeem_code: {
+    code: string;
+    qr_payload: string;
+    status: string;
+    expires_at: string;
+  } | null;
   channel_code: string | null;
 };
 
@@ -49,58 +62,108 @@ export default function ResultPage() {
 
   if (loading) {
     return (
-      <Layout>
-        <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4 text-gray-400">
-          <div className="spinner w-10 h-10" />
-          <p>載入中…</p>
-        </div>
-      </Layout>
+      <div className="flex min-h-dvh items-center justify-center bg-[#1361b5]">
+        <div className="spinner w-10 h-10" />
+      </div>
     );
   }
 
   if (!result?.redeem_code) {
     return (
-      <Layout>
-        <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4 text-center">
-          <p className="text-gray-500 text-sm">尚無生成結果，請先完成照片上傳。</p>
-          <button className="btn btn-primary" onClick={() => navigate("/upload")}>
-            去上傳
-          </button>
-        </div>
-      </Layout>
+      <div className="flex min-h-dvh flex-col items-center justify-center gap-4 p-6 text-center bg-[#1361b5]">
+        <p className="text-white text-sm">尚無生成結果，請先完成照片上傳。</p>
+        <button className="btn btn-primary" onClick={() => navigate("/upload")}>
+          去上傳
+        </button>
+      </div>
     );
   }
 
   return (
-    <Layout
-      cta={
-        <button
-          className="btn btn-primary btn-block"
-          onClick={() => navigate("/share", { state: { result } })}
-        >
-          取得試用兌換組
-        </button>
-      }
-    >
-      <div className="flex flex-col gap-4">
-        <h2 className="text-xl font-bold text-brand-blue">你的應援照來囉！</h2>
+    <div className="relative mx-auto max-w-mobile min-h-dvh overflow-x-hidden">
+      {/* Background */}
+      <div className="absolute inset-0 z-0 bg-[#1361b5]" />
+      <img
+        src={A.bg}
+        alt=""
+        className="absolute inset-0 z-0 w-full h-full object-cover object-center opacity-70"
+      />
+      {/* gradient overlay so text is readable */}
+      <div className="absolute inset-0 z-0 bg-gradient-to-b from-[#1361b5]/60 via-transparent to-[#0a3a78]/80" />
 
-        {result.result_image_url ? (
+      <div className="relative z-10 flex flex-col min-h-dvh">
+        {/* Header */}
+        <div className="px-4 pt-4 pb-1">
+          <img src={A.logo} alt="LA ROCHE-POSAY 理膚寶水" className="h-8 object-contain" />
+        </div>
+
+        {/* Slogan */}
+        <div className="px-4 pt-2 pb-3">
           <img
-            src={result.result_image_url}
-            alt="AI 應援照"
-            className="w-full rounded-xl block"
+            src={A.slogan}
+            alt="理膚寶水 NEW UVAIR 和您一起熱血應援!! 守護陽光下的每一刻"
+            className="w-full max-w-[360px]"
           />
-        ) : (
-          <div className="w-full min-h-64 rounded-xl bg-gradient-to-br from-blue-50 to-blue-100 flex items-center justify-center text-brand-blue text-sm font-semibold">
-            {isMock ? "（Mock 模式：圖片待生成）" : "AI 應援照"}
-          </div>
-        )}
+        </div>
 
-        <p className="text-sm text-gray-500 text-center">
-          按下方按鈕取得現場兌換 QR Code，並分享到 LINE 參加抽獎！
-        </p>
+        {/* AI photo */}
+        <div className="flex-1 flex flex-col items-center justify-center px-6 py-2">
+          <div className="relative w-full max-w-[300px]">
+            {result.result_image_url ? (
+              <img
+                src={result.result_image_url}
+                alt="AI 應援照"
+                className="w-full rounded-2xl block shadow-2xl"
+              />
+            ) : (
+              <div
+                className="aspect-[3/4] w-full rounded-2xl flex flex-col items-center justify-center gap-2"
+                style={{ background: "rgba(255,255,255,0.15)", backdropFilter: "blur(6px)" }}
+              >
+                <div className="flex items-center gap-2">
+                  <img src={A.newUvair} alt="NEW" className="h-5 object-contain" />
+                  <span className="text-white font-black text-xl tracking-widest">UVAIR</span>
+                </div>
+                <p className="text-white/60 text-sm text-center px-6">
+                  {isMock ? "（Mock 模式：圖片待生成）" : "AI 應援照"}
+                </p>
+              </div>
+            )}
+            {/* Frame overlay */}
+            <img
+              src={A.frame}
+              alt=""
+              className="pointer-events-none absolute inset-0 w-full h-full"
+            />
+          </div>
+
+          {/* Baseball decoration */}
+          <img
+            src={A.baseball}
+            alt=""
+            className="w-12 mt-3 drop-shadow-lg"
+            aria-hidden
+          />
+        </div>
+
+        {/* Bottom CTA */}
+        <div className="px-5 pt-3 pb-6">
+          <button
+            type="button"
+            className="w-full rounded-full py-4 text-[17px] font-black text-white tracking-wide shadow-2xl"
+            style={{
+              background: "linear-gradient(180deg, #ff8c2a 0%, #f47a1f 55%, #e86a10 100%)",
+              border: "3px solid #fff",
+            }}
+            onClick={() => navigate("/share", { state: { result } })}
+          >
+            前往領取試用組兌換碼
+          </button>
+          <p className="text-center text-white/60 text-[11px] mt-2">
+            ★活動期間：2026/7/3 00時00分 至 2026/8/23 23點59分★
+          </p>
+        </div>
       </div>
-    </Layout>
+    </div>
   );
 }
