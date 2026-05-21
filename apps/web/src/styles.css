@@ -15,15 +15,27 @@
   }
 }
 
+@keyframes shimmer {
+  0%   { transform: translateX(-100%); }
+  100% { transform: translateX(350%); }
+}
+
 @layer components {
   .btn {
     @apply inline-flex items-center justify-center rounded-full px-6 py-3 text-[15px] font-semibold transition-opacity disabled:opacity-40 disabled:cursor-not-allowed;
   }
 
+  /* 主按鈕：橘 */
   .btn-primary {
     @apply bg-brand-orange text-white active:opacity-80;
   }
 
+  /* 輔助按鈕：藍（實心） */
+  .btn-secondary {
+    @apply bg-brand-blue text-white active:opacity-80;
+  }
+
+  /* 輔助按鈕：藍（描邊） */
   .btn-outline {
     @apply bg-white text-brand-blue border-2 border-brand-blue;
   }
@@ -66,10 +78,61 @@
     @apply h-[18px] w-[18px] rounded border-2 border-gray-400 accent-[#f47a1f];
   }
 
-  .upload-cta {
-    @apply rounded-full py-4 text-center text-[17px] font-black tracking-wide text-white;
+  /* 主 CTA 大按鈕（橘） */
+  .cta-primary,
+  .upload-cta,
+  .home-cta {
+    @apply rounded-full text-center font-black text-white;
     background: linear-gradient(180deg, #ff8c2a 0%, #f47a1f 55%, #e86a10 100%);
     border: 2px solid #fff;
     box-shadow: 0 4px 12px rgba(244, 122, 31, 0.45);
+  }
+
+  .upload-cta {
+    @apply py-4 text-[17px] tracking-wide;
+  }
+
+  .upload-cta:disabled {
+    background: #fdf3e8;
+    color: #f5c9a8;
+    border: 2px solid rgba(255, 255, 255, 0.9);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  }
+
+  .home-cta {
+    @apply mx-auto block py-4 text-[18px] tracking-widest;
+  }
+
+  /* 輔助 CTA 大按鈕（藍） */
+  .cta-secondary,
+  .share-cta {
+    @apply w-full rounded-full py-4 text-[17px] font-black tracking-widest text-white;
+    background: linear-gradient(180deg, #1e7bdc 0%, #0a4a8c 100%);
+    border: 2px solid rgba(255, 255, 255, 0.5);
+    box-shadow: 0 4px 16px rgba(10, 74, 140, 0.5);
+  }
+
+  .loading-shimmer {
+    animation: shimmer 1.8s linear infinite;
+  }
+
+  .home-step-badge {
+    @apply relative flex h-8 w-8 shrink-0 items-center justify-center;
+  }
+
+  .home-step-badge__icon {
+    @apply absolute inset-0 h-full w-full object-contain;
+  }
+
+  .home-step-badge__num {
+    @apply relative z-10 text-sm font-black text-brand-orange drop-shadow-sm;
+  }
+
+  .home-period-bar {
+    @apply bg-brand-orange py-2.5 text-center;
+  }
+
+  .home-period-bar p {
+    @apply text-[13px] font-bold tracking-wide text-white;
   }
 }

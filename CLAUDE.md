@@ -1,5 +1,7 @@
 # CLAUDE.md
 
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+
 > 這份檔案是給 Claude（VSCode Claude extension / Claude Code CLI / Cowork mode）閱讀的專案脈絡。
 > 開啟這個 repo 時，請先讀完本檔，再讀 `docs/` 與 `README.md`。
 
@@ -22,6 +24,7 @@
 | 佇列 / 快取 | Redis 7 |
 | Worker | 自寫 Python worker（Phase 5 會改為真正接 comfyUI） |
 | 容器 | Docker Compose（web / api / worker / db / redis） |
+| 部署 | 前端靜態 build → Cloudflare Pages；後端 Docker |
 | 測試 | pytest + pytest-asyncio |
 
 ## 3. 目錄結構
@@ -51,10 +54,20 @@ spe3d-lrp-sun-defender-rally/
 │   │   ├── requirements.txt
 │   │   └── Dockerfile
 │   ├── worker/     Python worker，目前是 mock（直接複製檔案當作生成結果）
-│   └── web/        React + Vite + LIFF 前端（目前只剩 Phase 2 骨架，Phase 4 要全換）
+│   └── web/        React + Vite + LIFF 前端
+│       └── src/
+│           ├── App.tsx           路由定義（6 條）
+│           ├── contexts/
+│           │   └── AuthContext.tsx   LIFF 登入狀態、access token
+│           ├── lib/
+│           │   ├── liff.ts          LIFF SDK 初始化 + mock 模式
+│           │   └── api.ts           Axios client（自動帶 Bearer token）
+│           ├── pages/            各頁面（見下方「前端架構」）
+│           └── components/       Layout、CloseButton、Signboard
 ├── db/
 │   ├── init.sql              Postgres 初始化 schema（首次啟動容器自動跑）
 │   └── seed_test_codes.sql
+├── storage/                  API 與 Worker 共用的圖片暫存（docker volume mount）
 ├── docs/                     見下方「文件導覽」
 ├── docker-compose.yml
 ├── .env.example
@@ -63,7 +76,53 @@ spe3d-lrp-sun-defender-rally/
 └── CLAUDE.md                 ← 你正在讀的這份
 ```
 
-## 4. 開發指令
+## 4. 前端架構
+
+### 路由與頁面對應
+
+| 路由 | 頁面 | 使用者流程步驟 |
+|------|------|--------------|
+| `/` | `HomePage` | 活動說明 + 同意書 |
+| `/upload` | `UploadPage` | 拍照 / 上傳照片 |
+| `/processing` | `ProcessingPage` | 等待 AI 生成（每 2 秒輪詢） |
+| `/result` | `ResultPage` | 展示結果 + QR Code + 折扣碼 |
+| `/share` | `SharePage` | 分享至 LINE → 取得抽獎資格 |
+| `/error` | `ErrorPage` | 統一錯誤頁 |
+
+### LIFF 認證流程
+
+```
+LIFF SDK 初始化（src/lib/liff.ts）
+  → liff.login()
+  → liff.getIDToken() → POST /api/v1/auth/line
+  → response header X-Access-Token → 存入 AuthContext
+  → src/lib/api.ts Axios instance 自動帶 Authorization: Bearer <token>
+```
+
+### Mock 模式（本地無 LINE 開發）
+
+在 `.env` 設 `VITE_MOCK_MODE=true`，`src/lib/liff.ts` 會跳過 LINE 登入、回傳假的 user profile，方便在瀏覽器直接測試頁面流程。
+
+### 圖片 / 靜態資源
+
+UI 圖片放在 `apps/web/public/`，在程式碼裡用絕對路徑 `/images/...` 引用（不要用 `import`）。
+
+## 5. 後端架構
+
+### Worker 佇列機制
+
+```
+POST /api/v1/jobs（上傳圖）
+  → api 將 job_id LPUSH 到 Redis 佇列
+  → worker BRPOP 拿到 job_id
+  → 呼叫 GET /api/v1/internal/jobs/{id} 取圖片路徑
+  → 處理完成後 PATCH /api/v1/internal/jobs/{id} 更新狀態 + 結果路徑
+  → 前端輪詢 GET /api/v1/jobs/{id} 拿到 succeeded/failed
+```
+
+`./storage` 目錄透過 docker volume 同時掛給 api 和 worker 容器，兩邊用相同路徑讀寫圖檔。
+
+## 6. 開發指令
 
 所有指令都從專案根目錄執行。
 
@@ -83,8 +142,14 @@ docker compose down -v
 docker compose up -d
 #   ⚠️ 這會清掉本地資料。未來導入 Alembic 後改成漸進式 migration。
 
-# 跑後端測試
+# 跑所有後端測試
 docker compose exec api pytest tests/ -v
+
+# 跑單一測試檔
+docker compose exec api pytest tests/test_machine_concurrent_redeem.py -v
+
+# 跑單一測試案例
+docker compose exec api pytest tests/test_machine_concurrent_redeem.py::test_concurrent_redeem -v
 
 # 看 logs
 docker compose logs -f api
@@ -96,6 +161,9 @@ docker compose exec db psql -U lrp -d lrp_anthelios
 # 重 build 容器（裝新套件時）
 docker compose build api worker
 docker compose up -d
+
+# 前端靜態 build（部署到 Cloudflare Pages）
+cd apps/web && npm run build
 ```
 
 開發時開啟的網址：
@@ -104,7 +172,7 @@ docker compose up -d
 - Web（Vite dev server）：http://localhost:5173
 - DB：localhost:5432（user `lrp` / db `lrp_anthelios`，密碼見 `.env`）
 
-## 5. 目前 Phase 進度（2026-05）
+## 7. 目前 Phase 進度（2026-05）
 
 依 `docs/01-roadmap.md`：
 
@@ -115,11 +183,11 @@ docker compose up -d
   - 兩支關鍵併發測試已綠：
     - `tests/test_machine_concurrent_redeem.py` — 機台扣碼併發只一個 win
     - `tests/test_channel_code_pool.py` — 折扣碼池併發各拿不同碼
-- [ ] **Phase 4** — LIFF 前端（**接下來要做的事**，見 `docs/PHASE4_KICKOFF.md`）
+- [ ] **Phase 4** — LIFF 前端（進行中，見 `docs/PHASE4_KICKOFF.md`）
 - [ ] **Phase 5** — 真實 comfyUI / picbot 串接 + 非同步 worker
 - [ ] **Phase 6** — 機台、推播、營運後台、上線檢查
 
-## 6. 已知限制（接手前要知道）
+## 8. 已知限制（接手前要知道）
 
 來自 `docs/PHASE3_NOTES.md`：
 
@@ -130,9 +198,9 @@ docker compose up -d
 - **沒導入 Alembic**：改 schema 目前都要 `docker compose down -v`，會洗掉資料。
 - **機台 token 還沒有後台簽發介面**：目前要手動用 `MACHINE_API_TOKEN_SIGNING_KEY` 簽 JWT。
 
-## 7. 約定 / 慣例
+## 9. 約定 / 慣例
 
-- **語言**：程式碼註解可以中文，commit message 與 PR 標題用英文或中英皆可。
+- **語言**：程式碼註解可以中文，commit message 與 PR 標題用英文。
 - **API 路徑**：所有業務 API 都掛在 `/api/v1/...` 之下。內部用走 `/api/v1/internal/...`（需 `INTERNAL_API_TOKEN`）。
 - **身分驗證**：
   - 前端使用者：`Authorization: Bearer <access_token>`（由 `/auth/line` 拿到）
@@ -143,7 +211,7 @@ docker compose up -d
 - **時間**：DB 一律 `timestamptz`，後端用 UTC，前端再轉 `Asia/Taipei`。
 - **環境變數**：見 `.env.example` 與 `docs/06-env-example.md`。前端用的變數必須以 `VITE_` 開頭（會 bundle 進 client，**只能放公開資訊**）。
 
-## 8. 文件導覽（`docs/`）
+## 10. 文件導覽（`docs/`）
 
 | 檔案 | 用途 |
 |---|---|
@@ -155,10 +223,10 @@ docker compose up -d
 | `06-env-example.md` | 環境變數說明 |
 | `liff-user-flow-prd.md` | 使用者流程與 MVP 範圍（PRD） |
 | `PHASE3_NOTES.md` | Phase 3 完成時的操作說明、已知限制 |
-| `PHASE4_KICKOFF.md` | **下一階段任務拆分**，可直接餵 Claude 當提示 |
+| `PHASE4_KICKOFF.md` | **Phase 4 任務拆分**，可直接餵 Claude 當提示 |
 | `0505 [啟雲科技] ...Line串接討論.pdf` | 與客戶的 LINE 串接會議資料 |
 
-## 9. 乙方 Webhook 串接（粉絲追蹤通知）
+## 11. 乙方 Webhook 串接（粉絲追蹤通知）
 
 乙方（LINE 官方帳號管理商）負責接收 LINE platform webhook，並將原始事件**原封不動**轉發至我方 API。
 
@@ -183,7 +251,7 @@ LINE webhook 的 `follow` 事件只帶 `userId`，無法直接知道使用者是
 - 在 `apps/api/app/main.py` 掛上 `/api/v1/webhook` prefix
 - 在 `.env.example` 與 `docs/06-env-example.md` 補 `PARTNER_WEBHOOK_TOKEN`
 
-## 10. 給 Claude 的工作守則
+## 12. 給 Claude 的工作守則
 
 - 動 schema 之前先問人，會牽動 `db/init.sql` 與 `apps/api/app/models.py` 兩處。
 - 動到 `auth.py` / `machine.py` / `me/channel-code` 這幾條路徑時，務必確認對應的 pytest 還能過：

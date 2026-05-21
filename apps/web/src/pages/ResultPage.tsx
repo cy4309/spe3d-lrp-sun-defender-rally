@@ -150,11 +150,7 @@ export default function ResultPage() {
         <div className="px-5 pt-3 pb-6">
           <button
             type="button"
-            className="w-full rounded-full py-4 text-[17px] font-black text-white tracking-wide shadow-2xl"
-            style={{
-              background: "linear-gradient(180deg, #ff8c2a 0%, #f47a1f 55%, #e86a10 100%)",
-              border: "3px solid #fff",
-            }}
+            className="cta-primary w-full py-4 text-[17px] tracking-wide shadow-2xl"
             onClick={() => navigate("/share", { state: { result } })}
           >
             前往領取試用組兌換碼

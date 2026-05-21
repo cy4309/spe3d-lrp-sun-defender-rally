@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { QRCodeSVG } from "qrcode.react";
-import CloseButton from "@/components/CloseButton";
+import ModalOverlay from "@/components/ModalOverlay";
+import SlantedBorder from "@/components/SlantedBorder";
 import { useAuth } from "@/contexts/AuthContext";
 import { ApiError, apiGet, apiPost } from "@/lib/api";
 import { shareTargetPicker } from "@/lib/liff";
@@ -47,62 +48,33 @@ const MOCK_RESULT: MeResult = {
 
 type DiscountType = "momo" | "shopee" | "watsons";
 
-function SlantedBorder({ className = "" }: { className?: string }) {
-  return (
-    <div className={`flex items-center justify-center gap-[4px] overflow-hidden ${className}`} aria-hidden>
-      {Array.from({ length: 18 }).map((_, i) => (
-        <span key={i} className="block h-[4px] w-5 rounded-sm bg-brand-blue -skew-x-[28deg]" />
-      ))}
-    </div>
-  );
-}
-
-/** Modal backdrop */
-function Overlay({ onClose, children }: { onClose: () => void; children: React.ReactNode }) {
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-5" onClick={onClose}>
-      <div onClick={(e) => e.stopPropagation()} className="relative w-full max-w-sm">
-        {children}
-      </div>
-    </div>
-  );
-}
-
 /** Share confirmation popup (5_2-share-popup) */
 function SharePopup({ onClose, onConfirm, sharing }: { onClose: () => void; onConfirm: () => void; sharing: boolean }) {
   return (
-    <Overlay onClose={onClose}>
-      <div className="relative">
-        <CloseButton onClick={onClose} label="關閉" className="absolute -right-2 -top-2 z-10" />
-        {/* Bubble image */}
+    <ModalOverlay onClose={onClose}>
+      <>
         <img src={A.shareBubble} alt="分享應援活動 參加抽籤！" className="w-full" />
         {/* CTA below bubble */}
         <div className="mt-3 px-2">
           <button
             type="button"
-            className="w-full rounded-full py-4 text-[17px] font-black text-white tracking-widest disabled:opacity-40"
-            style={{
-              background: "linear-gradient(180deg, #1e7bdc 0%, #0a4a8c 100%)",
-              border: "3px solid #fff",
-              boxShadow: "0 4px 16px rgba(0,0,0,0.3)",
-            }}
+            className="cta-primary w-full py-4 text-[17px] tracking-widest disabled:opacity-40"
             onClick={onConfirm}
             disabled={sharing}
           >
             {sharing ? "分享中…" : "立即分享 >>"}
           </button>
         </div>
-      </div>
-    </Overlay>
+      </>
+    </ModalOverlay>
   );
 }
 
 /** Watson's barcode popup (5_4) */
 function BarcodePopup({ code, onClose }: { code: string; onClose: () => void }) {
   return (
-    <Overlay onClose={onClose}>
-      <div className="rounded-2xl bg-white shadow-2xl overflow-hidden">
-        <CloseButton onClick={onClose} label="關閉" className="absolute -right-2 -top-2 z-10" />
+    <ModalOverlay onClose={onClose}>
+      <div className="overflow-hidden rounded-2xl bg-white shadow-2xl">
         <div className="px-6 py-6 text-center">
           <h2 className="text-xl font-black text-brand-blue mb-1">您的通路折扣碼</h2>
           <SlantedBorder className="mb-4" />
@@ -123,12 +95,12 @@ function BarcodePopup({ code, onClose }: { code: string; onClose: () => void }) 
             <br />
             效期：2026/7/1–2026/12/31
           </p>
-          <button type="button" className="w-full rounded-full bg-[#009bdf] py-3 text-sm font-bold text-white" onClick={onClose}>
+          <button type="button" className="btn btn-primary btn-block py-3 text-sm" onClick={onClose}>
             確認
           </button>
         </div>
       </div>
-    </Overlay>
+    </ModalOverlay>
   );
 }
 
@@ -145,9 +117,8 @@ function TextCodePopup({ platform, code, onClose }: { platform: "momo" | "shopee
   }
 
   return (
-    <Overlay onClose={onClose}>
-      <div className="rounded-2xl bg-white shadow-2xl overflow-hidden">
-        <CloseButton onClick={onClose} label="關閉" className="absolute -right-2 -top-2 z-10" />
+    <ModalOverlay onClose={onClose}>
+      <div className="overflow-hidden rounded-2xl bg-white shadow-2xl">
         <div className="px-6 py-6 text-center">
           <h2 className="text-xl font-black text-brand-blue mb-1">您的通路折扣碼</h2>
           <SlantedBorder className="mb-5" />
@@ -159,13 +130,13 @@ function TextCodePopup({ platform, code, onClose }: { platform: "momo" | "shopee
             <button type="button" className="w-full rounded-full py-3.5 text-sm font-bold text-white" style={{ background: platformColor }} onClick={() => void handleCopy()}>
               {copied ? "已複製！" : "複製折扣碼"}
             </button>
-            <button type="button" className="w-full rounded-full py-3 text-sm font-semibold text-gray-600 border border-gray-300" onClick={onClose}>
+            <button type="button" className="btn btn-outline btn-block py-3 text-sm" onClick={onClose}>
               前往活動頁領券
             </button>
           </div>
         </div>
       </div>
-    </Overlay>
+    </ModalOverlay>
   );
 }
 
@@ -424,12 +395,7 @@ export default function SharePage() {
         {/* Share button */}
         <button
           type="button"
-          className="w-full rounded-full py-4 text-[17px] font-black text-white tracking-widest mb-2"
-          style={{
-            background: "linear-gradient(180deg, #1e7bdc 0%, #0a4a8c 100%)",
-            border: "3px solid rgba(255,255,255,0.6)",
-            boxShadow: "0 4px 16px rgba(10,74,140,0.4)",
-          }}
+          className="cta-primary mb-2 w-full py-4 text-[17px] tracking-widest disabled:opacity-40"
           onClick={() => setShowSharePopup(true)}
           disabled={sharing}
         >
