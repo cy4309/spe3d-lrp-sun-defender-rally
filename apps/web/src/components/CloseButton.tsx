@@ -2,16 +2,17 @@ type CloseButtonProps = {
   onClick: () => void;
   label?: string;
   className?: string;
-  /** default：僅按鈕本體；modal：彈窗面板右上角定位 */
-  variant?: "default" | "modal";
+  /** default：僅按鈕本體；modal：彈窗面板右上角；preview：預覽圖區塊內右上角（橘） */
+  variant?: "default" | "modal" | "preview";
 };
 
 const BASE =
-  "flex h-9 w-9 items-center justify-center rounded-full bg-brand-blue text-xl font-bold text-white shadow-md ring-2 ring-white";
+  "flex h-9 w-9 items-center justify-center rounded-full text-xl font-bold text-white shadow-md ring-2 ring-white";
 
 const VARIANT_CLASS: Record<NonNullable<CloseButtonProps["variant"]>, string> = {
-  default: "",
-  modal: "absolute -right-2 -top-2 z-10",
+  default: "bg-brand-blue",
+  modal: "absolute -right-2 -top-2 z-10 bg-brand-blue",
+  preview: "absolute right-2 top-2 z-10 bg-brand-orange",
 };
 
 export default function CloseButton({

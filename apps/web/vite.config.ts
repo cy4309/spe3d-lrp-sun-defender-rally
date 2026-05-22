@@ -26,6 +26,14 @@ export default defineConfig({
         target: apiProxyTarget,
         changeOrigin: true,
       },
+      "/docs": {
+        target: apiProxyTarget,
+        changeOrigin: true,
+      },
+      "/openapi.json": {
+        target: apiProxyTarget,
+        changeOrigin: true,
+      },
     },
     watch: {
       // Docker volumes 在某些 OS 不會觸發原生 fs event，polling workaround

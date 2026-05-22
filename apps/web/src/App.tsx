@@ -1,4 +1,5 @@
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
+import RequireAuth from "@/components/RequireAuth";
 import { AuthProvider } from "@/contexts/AuthContext";
 import ErrorPage from "@/pages/ErrorPage";
 import HomePage from "@/pages/HomePage";
@@ -13,10 +14,38 @@ export default function App() {
       <AuthProvider>
         <Routes>
           <Route path="/" element={<HomePage />} />
-          <Route path="/upload" element={<UploadPage />} />
-          <Route path="/processing/:jobId" element={<ProcessingPage />} />
-          <Route path="/result" element={<ResultPage />} />
-          <Route path="/share" element={<SharePage />} />
+          <Route
+            path="/upload"
+            element={
+              <RequireAuth>
+                <UploadPage />
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="/processing/:jobId"
+            element={
+              <RequireAuth>
+                <ProcessingPage />
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="/result"
+            element={
+              <RequireAuth>
+                <ResultPage />
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="/share"
+            element={
+              <RequireAuth>
+                <SharePage />
+              </RequireAuth>
+            }
+          />
           <Route path="/error" element={<ErrorPage />} />
           <Route path="*" element={<Navigate to="/error" replace />} />
         </Routes>

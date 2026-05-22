@@ -1,5 +1,19 @@
-import { createContext, ReactNode, useContext, useEffect, useState } from "react";
-import { setAuthToken } from "@/lib/api";
+import {
+  createContext,
+  ReactNode,
+  useCallback,
+  useContext,
+  useEffect,
+  useState,
+} from "react";
+import { useNavigate } from "react-router-dom";
+import {
+  clearAuthToken,
+  getAuthToken,
+  getTokenExpiresAtMs,
+  setAuthToken,
+  setUnauthorizedHandler,
+} from "@/lib/api";
 import { getIdToken, getProfile, initLiff, login as liffLogin } from "@/lib/liff";
 
 const CAMPAIGN_CODE =
@@ -34,17 +48,45 @@ export type AuthState =
   | { phase: "mock" }
   | { phase: "ready"; user: UserInfo; userCampaign: UserCampaignInfo; campaign: CampaignInfo };
 
-const AuthContext = createContext<AuthState>({ phase: "loading" });
+type AuthContextValue = {
+  state: AuthState;
+  invalidateSession: (message?: string) => void;
+};
+
+const AuthContext = createContext<AuthContextValue | null>(null);
+
+const DEFAULT_SESSION_EXPIRED_MSG = "登入已過期，請重新從 LINE 開啟活動";
 
 export function AuthProvider({ children }: { children: ReactNode }) {
+  const navigate = useNavigate();
   const [state, setState] = useState<AuthState>({ phase: "loading" });
+
+  const invalidateSession = useCallback(
+    (message?: string) => {
+      clearAuthToken();
+      setState({
+        phase: "error",
+        message: message ?? DEFAULT_SESSION_EXPIRED_MSG,
+      });
+      navigate("/", { replace: true });
+    },
+    [navigate],
+  );
+
+  useEffect(() => {
+    setUnauthorizedHandler(invalidateSession);
+    return () => setUnauthorizedHandler(null);
+  }, [invalidateSession]);
 
   useEffect(() => {
     (async () => {
       try {
         const { ok, mock, error } = await initLiff();
         console.log("[auth] initLiff", { ok, mock, error });
-        if (mock) { setState({ phase: "mock" }); return; }
+        if (mock) {
+          setState({ phase: "mock" });
+          return;
+        }
         if (!ok) throw new Error(error ?? "LIFF 初始化失敗");
 
         await liffLogin();
@@ -91,9 +133,44 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     })();
   }, []);
 
-  return <AuthContext.Provider value={state}>{children}</AuthContext.Provider>;
+  /** JWT 到期時主動登出（使用者停留在頁面、尚未打 API 的情況） */
+  useEffect(() => {
+    if (state.phase !== "ready") return;
+
+    const token = getAuthToken();
+    if (!token) {
+      invalidateSession();
+      return;
+    }
+
+    const expiresAt = getTokenExpiresAtMs(token);
+    if (!expiresAt) return;
+
+    const delay = expiresAt - Date.now();
+    if (delay <= 0) {
+      invalidateSession();
+      return;
+    }
+
+    const timer = window.setTimeout(() => invalidateSession(), delay);
+    return () => window.clearTimeout(timer);
+  }, [state.phase, invalidateSession]);
+
+  return (
+    <AuthContext.Provider value={{ state, invalidateSession }}>
+      {children}
+    </AuthContext.Provider>
+  );
 }
 
-export function useAuth() {
-  return useContext(AuthContext);
+export function useAuth(): AuthState {
+  const ctx = useContext(AuthContext);
+  if (!ctx) throw new Error("useAuth must be used within AuthProvider");
+  return ctx.state;
+}
+
+export function useInvalidateSession() {
+  const ctx = useContext(AuthContext);
+  if (!ctx) throw new Error("useInvalidateSession must be used within AuthProvider");
+  return ctx.invalidateSession;
 }

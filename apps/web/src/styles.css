@@ -89,14 +89,15 @@
   }
 
   .upload-cta {
-    @apply py-4 text-[17px] tracking-wide;
+    @apply py-[18px] text-[20px] tracking-[0.12em] shadow-[0_6px_16px_rgba(244,122,31,0.5)];
   }
 
   .upload-cta:disabled {
-    background: #fdf3e8;
-    color: #f5c9a8;
-    border: 2px solid rgba(255, 255, 255, 0.9);
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    background: #f8ebe0;
+    color: #f0c9a8;
+    border: 2px solid #fff;
+    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.12);
+    opacity: 1;
   }
 
   .home-cta {
