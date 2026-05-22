@@ -9,6 +9,7 @@ from pathlib import Path
 from uuid import UUID
 
 import jwt
+from fastapi import Request
 
 from app.config import get_settings
 
@@ -65,6 +66,28 @@ def save_image(raw: bytes, suffix: str = ".jpg") -> tuple[str, str]:
 def image_url(relative_path: str) -> str:
     settings = get_settings()
     return f"{settings.image_base_url.rstrip('/')}/{relative_path.lstrip('/')}"
+
+
+def public_image_url(relative_path: str, request: Request | None = None) -> str:
+    """回傳 LINE 可抓取的絕對圖片 URL。
+
+    當 IMAGE_BASE_URL=/img 時，依請求的 Host / X-Forwarded-* 組出 https://{ngrok}/img/...
+    """
+    settings = get_settings()
+    base = settings.image_base_url.rstrip("/")
+    path = relative_path.lstrip("/")
+
+    if base.startswith(("http://", "https://")):
+        return f"{base}/{path}"
+
+    if request is not None:
+        proto = (request.headers.get("x-forwarded-proto") or request.url.scheme).split(",")[0].strip()
+        host = (request.headers.get("x-forwarded-host") or request.headers.get("host") or "").split(",")[0].strip()
+        if host:
+            prefix = base if base.startswith("/") else f"/{base}"
+            return f"{proto}://{host}{prefix}/{path}"
+
+    return f"{base}/{path}"
 
 
 def build_qr_payload(code: str) -> str:

@@ -11,7 +11,7 @@ const BASE =
 
 const VARIANT_CLASS: Record<NonNullable<CloseButtonProps["variant"]>, string> = {
   default: "bg-brand-blue",
-  modal: "absolute -right-2 -top-2 z-10 bg-brand-blue",
+  modal: "absolute -right-2 -top-2 z-10 bg-brand-orange",
   preview: "absolute right-2 top-2 z-10 bg-brand-orange",
 };
 

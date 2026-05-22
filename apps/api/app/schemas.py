@@ -105,6 +105,10 @@ class ShareResponse(BaseModel):
     user_campaign_status: str
 
 
+class ShareCardResponse(BaseModel):
+    share_image_url: str
+
+
 class ChannelCodeResponse(BaseModel):
     code: str
 

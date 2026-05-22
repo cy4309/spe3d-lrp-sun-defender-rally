@@ -2,8 +2,6 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import ActivityRulesPopup from "@/components/ActivityRulesPopup";
 import { useAuth } from "@/contexts/AuthContext";
-import { clearAuthToken } from "@/lib/api";
-import { logoutLiff } from "@/lib/liff";
 
 const A = {
   bg1: "/assets/landing-page-home/landing-page_home_bg1.png",
@@ -31,51 +29,13 @@ export default function HomePage() {
   const auth = useAuth();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
-  const [reloginBusy, setReloginBusy] = useState(false);
   const [showRules, setShowRules] = useState(false);
   const isMock = auth.phase === "mock";
-
-  async function handleReloginLine() {
-    setReloginBusy(true);
-    try {
-      clearAuthToken();
-      await logoutLiff();
-    } finally {
-      window.location.reload();
-    }
-  }
 
   function handleStart() {
     setLoading(true);
     navigate("/upload");
     setLoading(false);
-  }
-
-  if (auth.phase === "loading") {
-    return (
-      <div className="flex min-h-dvh items-center justify-center bg-[#1361b5]">
-        <div className="spinner h-10 w-10" />
-      </div>
-    );
-  }
-
-  if (auth.phase === "error") {
-    return (
-      <div className="flex min-h-dvh flex-col items-center justify-center gap-4 bg-[#1361b5] px-6 text-center">
-        <img src={A.logo} alt="LA ROCHE-POSAY 理膚寶水" className="h-10 object-contain" />
-        <p className="text-sm text-white/80">{auth.message}</p>
-        <div className="flex w-full max-w-xs flex-col gap-2">
-          {!isMock && (
-            <button type="button" className="btn btn-primary w-full" disabled={reloginBusy} onClick={() => void handleReloginLine()}>
-              {reloginBusy ? "處理中…" : "重新登入 LINE"}
-            </button>
-          )}
-          <button type="button" className="btn btn-outline w-full border-white/50 text-white" onClick={() => window.location.reload()}>
-            僅重新整理
-          </button>
-        </div>
-      </div>
-    );
   }
 
   return (
@@ -86,13 +46,13 @@ export default function HomePage() {
 
         <div className="absolute inset-0 flex flex-col">
           {/* Header 疊在 bg1 上 */}
-          <div className="bg-white flex items-start justify-between px-4 pt-3">
+          <div className="bg-white flex items-start justify-between px-8 pt-3">
             <img src={A.logo} alt="LA ROCHE-POSAY 理膚寶水" className="h-7 object-contain drop-shadow-sm" />
             <img src={A.no1} alt="台灣皮膚科醫師 No.1" className="h-11 object-contain drop-shadow-sm" />
           </div>
 
           {/* 主標、副標、按鈕（疊在球場圖下半部） */}
-          <div className="w-full h-full px-4 pb-5 pt-2 text-center">
+          <div className="w-full h-full px-8 pb-5 pt-2 text-center">
             <div className="mb-2 flex items-center justify-start gap-1.5">
               <img src={A.newUvair} alt="NEW UVAIR" className="h-5 object-contain" />
             </div>
@@ -114,7 +74,7 @@ export default function HomePage() {
       <section className="relative w-full">
         <img src={A.bg2} alt="" className="block w-full" aria-hidden />
 
-        <div className="absolute inset-x-0 bottom-0 z-10 flex items-end justify-between px-3 pb-11 sm:px-4">
+        <div className="absolute inset-x-0 bottom-0 z-10 flex items-end justify-between px-3 pb-11 sm:px-8">
           <ol className="mb-2 max-w-[58%] space-y-3.5 pl-1">
             {CAMPAIGN_STEPS.map((step) => (
               <li key={step.n} className="flex items-start gap-2.5">
@@ -148,11 +108,7 @@ export default function HomePage() {
       <footer className="bg-brand-blue px-5 py-4 text-center">
         <p className="text-[11px] leading-relaxed text-white/90">
           *本活動詳情與注意事項請詳閱{" "}
-          <button
-            type="button"
-            className="text-[#ffe566] underline underline-offset-2"
-            onClick={() => setShowRules(true)}
-          >
+          <button type="button" className="text-[#ffe566] underline underline-offset-2" onClick={() => setShowRules(true)}>
             活動辦法
           </button>
           。

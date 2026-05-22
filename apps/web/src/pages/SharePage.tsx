@@ -1,23 +1,47 @@
 import { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { QRCodeSVG } from "qrcode.react";
+import ActivityRulesPopup from "@/components/ActivityRulesPopup";
 import ModalOverlay from "@/components/ModalOverlay";
+import Signboard from "@/components/Signboard";
 import SlantedBorder from "@/components/SlantedBorder";
 import { useAuth } from "@/contexts/AuthContext";
-import { ApiError, apiGet, apiPost } from "@/lib/api";
+import { ApiError, apiGet, apiPost, apiPostForm } from "@/lib/api";
+import { buildShareCardImage, resolveShareImageUrl, SHARE_CARD_ASPECT_RATIO } from "@/lib/shareCardImage";
 import { shareTargetPicker } from "@/lib/liff";
 
 const CAMPAIGN_CODE = (import.meta.env.VITE_CAMPAIGN_CODE as string) || "anthelios-2026-summer";
 const LIFF_URL = import.meta.env.VITE_LIFF_URL as string | undefined;
 
 const A = {
-  bgStadium: "/assets/genai_done_qr_page/GenAI_donepage_QR_bg1.png",
-  bgBlue: "/assets/genai_done_qr_page/GenAI_donepage_QR_bg2.png",
-  bgBlueCover: "/assets/genai_done_qr_page/GenAI_donepage_QR_bg2_cover.png",
+  bg: "/assets/genai_done_qr_page/GenAI_donepage_QR_bg1.png",
+  bg2: "/assets/genai_done_qr_page/GenAI_donepage_QR_bg2.png",
+  bg2Cover: "/assets/genai_done_qr_page/GenAI_donepage_QR_bg2_cover.png",
   shareBubble: "/assets/genai_done_qr_page/GenAI_donepage_QR_share1.png",
   picbot: "/assets/genai_done_qr_page/GenAI_donepage_QR_pic_picbot.png",
+  sample: "/assets/genai_done_qr_page/GenAI_donepage_QR_pic_sample.png",
   logo: "/assets/landing-page-home/lp_logo.png",
 } as const;
+
+const VENUES = [
+  {
+    title: "台北天母棒球場｜賽事限定",
+    dates: "活動日期：7/3(五)、7/4(六)、7/5(日)",
+    booth: "2 樓用餐休息區（三壘側 H 區）",
+  },
+  {
+    title: "台中漢神洲際購物廣場",
+    dates: "活動日期：7/6(一)～8/2(日)",
+    booth: "4 樓運動用品區",
+    dividerBefore: true,
+  },
+  {
+    title: "高雄澄清湖棒球場｜賽事限定",
+    dates: "活動日期：8/5(三)、8/7(五)、8/8(六)、8/9(日)、8/11(二)、8/12(三)、8/21(五)、8/22(六)、8/23(日)",
+    booth: "三壘側品牌活動區",
+    dividerBefore: true,
+  },
+] as const;
 
 type RedeemCode = {
   code: string;
@@ -46,7 +70,13 @@ const MOCK_RESULT: MeResult = {
   channel_code: null,
 };
 
-type DiscountType = "momo" | "shopee" | "watsons";
+type DiscountType = "momo" | "shopee" | "watsons" | "cosmed";
+
+const TEXT_PLATFORMS: Record<"momo" | "shopee" | "cosmed", { label: string; color: string }> = {
+  momo: { label: "momo 購物", color: "#c0392b" },
+  shopee: { label: "蝦皮購物", color: "#f26522" },
+  cosmed: { label: "康是美", color: "#e60012" },
+};
 
 /** Share confirmation popup (5_2-share-popup) */
 function SharePopup({ onClose, onConfirm, sharing }: { onClose: () => void; onConfirm: () => void; sharing: boolean }) {
@@ -54,14 +84,8 @@ function SharePopup({ onClose, onConfirm, sharing }: { onClose: () => void; onCo
     <ModalOverlay onClose={onClose}>
       <>
         <img src={A.shareBubble} alt="分享應援活動 參加抽籤！" className="w-full" />
-        {/* CTA below bubble */}
         <div className="mt-3 px-2">
-          <button
-            type="button"
-            className="cta-primary w-full py-4 text-[17px] tracking-widest disabled:opacity-40"
-            onClick={onConfirm}
-            disabled={sharing}
-          >
+          <button type="button" className="cta-primary w-full py-4 text-[17px] tracking-widest disabled:opacity-40" onClick={onConfirm} disabled={sharing}>
             {sharing ? "分享中…" : "立即分享 >>"}
           </button>
         </div>
@@ -74,13 +98,12 @@ function SharePopup({ onClose, onConfirm, sharing }: { onClose: () => void; onCo
 function BarcodePopup({ code, onClose }: { code: string; onClose: () => void }) {
   return (
     <ModalOverlay onClose={onClose}>
-      <div className="overflow-hidden rounded-2xl bg-white shadow-2xl">
+      <Signboard>
         <div className="px-6 py-6 text-center">
-          <h2 className="text-xl font-black text-brand-blue mb-1">您的通路折扣碼</h2>
+          <h2 className="mb-1 text-xl font-black text-brand-blue">您的通路折扣碼</h2>
           <SlantedBorder className="mb-4" />
-          <p className="text-sm font-semibold text-gray-700 mb-4">WSN 安得利系列防曬商品折價券</p>
-          {/* Barcode visual — replace with a real barcode library if needed */}
-          <div className="relative mx-auto w-full max-w-[260px] mb-1">
+          <p className="mb-4 text-sm font-semibold text-gray-700">WSN 安得利系列防曬商品折價券</p>
+          <div className="relative mx-auto mb-1 w-full max-w-[260px]">
             <div
               className="h-20 w-full"
               style={{
@@ -88,27 +111,26 @@ function BarcodePopup({ code, onClose }: { code: string; onClose: () => void }) 
               }}
             />
           </div>
-          <p className="font-mono text-sm tracking-widest text-gray-800 mb-4">{code}</p>
-          <p className="text-[11px] text-gray-400 mb-1">★ 長按圖片下載條碼 ★</p>
-          <p className="text-xs text-gray-600 mb-4">
+          <p className="mb-4 font-mono text-sm tracking-widest text-gray-800">{code}</p>
+          <p className="mb-1 text-[11px] text-gray-400">★ 長按圖片下載條碼 ★</p>
+          <p className="mb-4 text-xs text-gray-600">
             請持此條碼前往屈臣氏門市購物使用。
             <br />
             效期：2026/7/1–2026/12/31
           </p>
-          <button type="button" className="btn btn-primary btn-block py-3 text-sm" onClick={onClose}>
+          <button type="button" className="btn btn-secondary btn-block py-3 text-sm" onClick={onClose}>
             確認
           </button>
         </div>
-      </div>
+      </Signboard>
     </ModalOverlay>
   );
 }
 
-/** Text code popup for momo / Shopee (5_5) */
-function TextCodePopup({ platform, code, onClose }: { platform: "momo" | "shopee"; code: string; onClose: () => void }) {
+/** Text code popup for momo / Shopee / Cosmed (5_5) */
+function TextCodePopup({ platform, code, onClose }: { platform: "momo" | "shopee" | "cosmed"; code: string; onClose: () => void }) {
   const [copied, setCopied] = useState(false);
-  const platformLabel = platform === "momo" ? "momo 購物" : "蝦皮購物";
-  const platformColor = platform === "momo" ? "#c0392b" : "#f26522";
+  const { label, color } = TEXT_PLATFORMS[platform];
 
   async function handleCopy() {
     await navigator.clipboard.writeText(code);
@@ -118,16 +140,16 @@ function TextCodePopup({ platform, code, onClose }: { platform: "momo" | "shopee
 
   return (
     <ModalOverlay onClose={onClose}>
-      <div className="overflow-hidden rounded-2xl bg-white shadow-2xl">
+      <Signboard>
         <div className="px-6 py-6 text-center">
-          <h2 className="text-xl font-black text-brand-blue mb-1">您的通路折扣碼</h2>
+          <h2 className="mb-1 text-xl font-black text-brand-blue">您的通路折扣碼</h2>
           <SlantedBorder className="mb-5" />
-          <p className="text-sm font-semibold text-gray-600 mb-3">{platformLabel}折扣碼：</p>
-          <div className="mx-auto mb-5 rounded-xl px-6 py-4 text-3xl font-black tracking-[4px]" style={{ background: `${platformColor}15`, border: `2px solid ${platformColor}40`, color: platformColor }}>
+          <p className="mb-3 text-sm font-semibold text-gray-600">{label}折扣碼：</p>
+          <div className="mx-auto mb-5 rounded-xl px-6 py-4 text-3xl font-black tracking-[4px]" style={{ background: `${color}15`, border: `2px solid ${color}40`, color }}>
             {code}
           </div>
           <div className="flex flex-col gap-2">
-            <button type="button" className="w-full rounded-full py-3.5 text-sm font-bold text-white" style={{ background: platformColor }} onClick={() => void handleCopy()}>
+            <button type="button" className="w-full rounded-full py-3.5 text-sm font-bold text-white" style={{ background: color }} onClick={() => void handleCopy()}>
               {copied ? "已複製！" : "複製折扣碼"}
             </button>
             <button type="button" className="btn btn-outline btn-block py-3 text-sm" onClick={onClose}>
@@ -135,8 +157,25 @@ function TextCodePopup({ platform, code, onClose }: { platform: "momo" | "shopee
             </button>
           </div>
         </div>
-      </div>
+      </Signboard>
     </ModalOverlay>
+  );
+}
+
+function VenueBlock({ venue, onMapClick }: { venue: (typeof VENUES)[number]; onMapClick: () => void }) {
+  const withDivider = "dividerBefore" in venue && venue.dividerBefore;
+
+  return (
+    <div className={`text-[11px] leading-relaxed text-gray-800 ${withDivider ? "border-t border-brand-blue pt-3" : ""}`}>
+      <p className="font-bold text-brand-blue">{venue.title}</p>
+      <p>{venue.dates}</p>
+      <p>派樣機地點：{venue.booth}</p>
+      <p>
+        <button type="button" className="font-bold text-brand-orange underline underline-offset-2" onClick={onMapClick}>
+          機台位置圖
+        </button>
+      </p>
+    </div>
   );
 }
 
@@ -153,6 +192,7 @@ export default function SharePage() {
   const [channelCode, setChannelCode] = useState<string | null>(passedResult?.channel_code ?? null);
 
   const [showSharePopup, setShowSharePopup] = useState(false);
+  const [showRules, setShowRules] = useState(false);
   const [sharing, setSharing] = useState(false);
   const [shareErr, setShareErr] = useState<string | null>(null);
   const [showDiscountPopup, setShowDiscountPopup] = useState<DiscountType | null>(null);
@@ -177,22 +217,43 @@ export default function SharePage() {
   }, [isMock, navigate, passedResult]);
 
   async function handleShare() {
+    if (!result) return;
+
     setSharing(true);
     setShareErr(null);
+    let mockObjectUrl: string | null = null;
     try {
       const base = window.location.origin;
       const actionUrl = LIFF_URL ?? base;
-      // LINE uri action 必須是 HTTPS；localhost (HTTP) 會被 LINE 後端靜默丟棄
       const safeActionUrl = actionUrl.startsWith("https://") ? actionUrl : null;
-      // AI 生成圖 URL（S3/CDN 公開路徑）；dev fallback 用 LINE 官方測試圖
-      // const heroUrl = result?.result_image_url ?? "https://scdn.line-apps.com/n/channel_devcenter/img/fx/01_1_cafe.png";
-      const heroUrl = "https://scdn.line-apps.com/n/channel_devcenter/img/fx/01_1_cafe.png";
 
-      // 品牌疊加素材 base URL
-      // dev (ngrok): VITE_SHARE_ASSET_BASE=https://xxxx.ngrok-free.app/public
-      // prod (CDN):  VITE_SHARE_ASSET_BASE=https://your-cdn.com  (public/ 內容在根目錄)
-      const shareAssetBase = (import.meta.env.VITE_SHARE_ASSET_BASE as string | undefined) ?? (base.startsWith("https://") ? `${base}/public` : null);
-      const asset = (path: string) => (shareAssetBase ? `${shareAssetBase}/assets/landing-page-home/${path}` : null);
+      const photoUrl = result.result_image_url ?? (isMock ? `${base}${A.sample}` : null);
+      if (!photoUrl) {
+        setShareErr("尚無應援照可分享，請先完成 AI 生成");
+        return;
+      }
+
+      const cardBlob = await buildShareCardImage(photoUrl);
+
+      let heroUrl: string;
+      if (isMock) {
+        mockObjectUrl = URL.createObjectURL(cardBlob);
+        heroUrl = mockObjectUrl;
+      } else {
+        const form = new FormData();
+        form.append("file", cardBlob, "share-card.png");
+        const uploadUrl = new URL("/api/v1/me/share-card", window.location.origin);
+        uploadUrl.searchParams.set("campaign_code", CAMPAIGN_CODE);
+        const uploaded = await apiPostForm<{ share_image_url: string }>(uploadUrl.pathname + uploadUrl.search, form);
+        heroUrl = resolveShareImageUrl(uploaded.share_image_url);
+        if (!heroUrl.startsWith("https://")) {
+          setShareErr("分享圖須為 HTTPS 絕對網址，請確認 ngrok 已指向本機且 IMAGE_BASE_URL=/img");
+          return;
+        }
+      }
+
+      // 先關閉彈窗，避免 Modal 擋住 LINE 分享選人畫面
+      setShowSharePopup(false);
 
       const ok = await shareTargetPicker([
         {
@@ -200,121 +261,31 @@ export default function SharePage() {
           altText: "我做了安得利防曬應援照，快來一起參加！",
           contents: {
             type: "bubble",
-            // Hero：以 AI 生成圖為底，疊加品牌素材
+            size: "giga",
             hero: {
-              type: "box",
-              layout: "vertical",
-              paddingAll: "none",
+              type: "image",
+              url: heroUrl,
+              size: "full",
+              aspectRatio: SHARE_CARD_ASPECT_RATIO,
+              aspectMode: "cover",
               ...(safeActionUrl ? { action: { type: "uri", uri: safeActionUrl } } : {}),
-              contents: [
-                // ① 底圖：AI 生成照
-                {
-                  type: "image",
-                  url: heroUrl,
-                  size: "full",
-                  aspectRatio: "20:13",
-                  aspectMode: "cover",
-                  flex: 1,
-                },
-                // ② 疊加：LA ROCHE-POSAY logo（左上）
-                ...(asset("lp_logo.png")
-                  ? [
-                      {
-                        type: "image" as const,
-                        url: asset("lp_logo.png")!,
-                        position: "absolute" as const,
-                        offsetTop: "sm",
-                        offsetStart: "sm",
-                        size: "90px",
-                        aspectMode: "fit" as const,
-                      },
-                    ]
-                  : []),
-                // ③ 疊加：台灣皮膚科醫師 No.1 badge（右上）
-                ...(asset("tw_no1_logo.png")
-                  ? [
-                      {
-                        type: "image" as const,
-                        url: asset("tw_no1_logo.png")!,
-                        position: "absolute" as const,
-                        offsetTop: "sm",
-                        offsetEnd: "sm",
-                        size: "50px",
-                        aspectMode: "fit" as const,
-                      },
-                    ]
-                  : []),
-                // ④ 疊加：活動名稱「理膚防曬應援 今夏不怕曬」（置中下方）
-                ...(asset("landing-page_home_event_name.png")
-                  ? [
-                      {
-                        type: "image" as const,
-                        url: asset("landing-page_home_event_name.png")!,
-                        position: "absolute" as const,
-                        offsetBottom: "xl",
-                        offsetStart: "sm",
-                        offsetEnd: "sm",
-                        size: "full",
-                        aspectMode: "fit" as const,
-                      },
-                    ]
-                  : []),
-                // ⑤ 疊加：CTA 文字圖「立即製作...」（最下方）
-                ...(asset("landing-page_home_cta.png")
-                  ? [
-                      {
-                        type: "image" as const,
-                        url: asset("landing-page_home_cta.png")!,
-                        position: "absolute" as const,
-                        offsetBottom: "xs",
-                        offsetStart: "sm",
-                        offsetEnd: "sm",
-                        size: "full",
-                        aspectMode: "fit" as const,
-                      },
-                    ]
-                  : []),
-              ],
-            },
-            footer: {
-              type: "box",
-              layout: "horizontal",
-              spacing: "sm",
-              contents: [
-                {
-                  type: "button",
-                  style: "primary",
-                  color: "#f47a1f",
-                  height: "sm",
-                  action: {
-                    type: "uri",
-                    label: "我要參加 >>",
-                    uri: safeActionUrl ?? "https://line.me",
-                  },
-                },
-              ],
-              flex: 0,
             },
           },
         },
       ]);
-      console.log("[share] shareTargetPicker ok:", ok);
       if (ok) {
-        // mock 模式下無 auth token，跳過 API call 直接更新 UI
         if (!isMock) {
           await apiPost("/api/v1/me/share", { target: "line" }, { campaign_code: CAMPAIGN_CODE });
         }
-        setShowSharePopup(false);
-        setShareErr("✅ LINE 回傳分享成功（ok=true）"); // 暫時顯示確認，確認後可移除
+        setShareErr("✅ LINE 回傳分享成功（ok=true）");
       } else {
-        // 使用者在 LINE 選友人介面取消了分享，或 LINE 回傳非 success
         setShareErr("分享取消或失敗（ok=false），請再試一次");
       }
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
-      console.error("[share] liff.shareTargetPicker failed:", msg);
       setShareErr(`分享失敗：${msg}`);
     } finally {
+      if (mockObjectUrl) URL.revokeObjectURL(mockObjectUrl);
       setSharing(false);
     }
   }
@@ -323,7 +294,9 @@ export default function SharePage() {
     setClaiming(true);
     setClaimErr(null);
     try {
-      const d = await apiPost<{ code: string }>("/api/v1/me/channel-code", undefined, { campaign_code: CAMPAIGN_CODE });
+      const d = await apiPost<{ code: string }>("/api/v1/me/channel-code", undefined, {
+        campaign_code: CAMPAIGN_CODE,
+      });
       setChannelCode(d.code);
     } catch (e) {
       setClaimErr(e instanceof ApiError && e.code === "channel_code_pool_empty" ? "通路折扣碼已發送完畢" : "領取失敗，請稍後再試");
@@ -343,16 +316,16 @@ export default function SharePage() {
   if (loading) {
     return (
       <div className="flex min-h-dvh items-center justify-center bg-[#1361b5]">
-        <div className="spinner w-10 h-10" />
+        <div className="spinner h-10 w-10" />
       </div>
     );
   }
 
   if (!result?.redeem_code) {
     return (
-      <div className="flex min-h-dvh flex-col items-center justify-center gap-4 p-6 text-center bg-[#1361b5]">
-        <p className="text-white text-sm">找不到兌換資料，請重新從首頁進入。</p>
-        <button className="btn btn-primary" onClick={() => navigate("/")}>
+      <div className="flex min-h-dvh flex-col items-center justify-center gap-4 bg-[#1361b5] p-6 text-center">
+        <p className="text-sm text-white">找不到兌換資料，請重新從首頁進入。</p>
+        <button type="button" className="btn btn-primary" onClick={() => navigate("/")}>
           回首頁
         </button>
       </div>
@@ -362,110 +335,108 @@ export default function SharePage() {
   const { redeem_code } = result;
 
   return (
-    <div className="mx-auto max-w-mobile bg-white">
-      {/* ── Stadium background header ── */}
-      <div className="relative overflow-hidden">
-        <img src={A.bgStadium} alt="" className="w-full block object-cover" style={{ maxHeight: 180 }} />
-        <div className="absolute inset-0 bg-gradient-to-b from-transparent to-white" />
-        {/* Logo */}
-        <div className="absolute top-3 left-4">
-          <img src={A.logo} alt="LA ROCHE-POSAY 理膚寶水" className="h-6 object-contain" />
-        </div>
-      </div>
-
-      {/* ── QR code section ── */}
-      <div className="px-5 pt-2 pb-4">
-        <h1 className="text-center text-[22px] font-black text-brand-blue mb-1">你的專屬兌換碼</h1>
-        <SlantedBorder className="mb-4" />
-
-        <div className="flex flex-col items-center mb-3">
-          <div className="rounded-2xl p-4 shadow-lg" style={{ border: "3px solid #0a4a8c" }}>
-            <QRCodeSVG value={redeem_code.qr_payload} size={200} fgColor="#0a4a8c" />
+    <>
+      <div className="relative mx-auto min-h-dvh max-w-mobile overflow-x-hidden">
+        {/* 背景：上半球場、下半藍底（bg2 + cover 疊加） */}
+        <div className="pointer-events-none absolute inset-0 z-0" aria-hidden>
+          <img src={A.bg} alt="" className="absolute inset-x-0 top-0 h-[100vh] w-full object-cover object-top" />
+          <div className="absolute inset-x-0 top-[100vh] bottom-0">
+            <img src={A.bg2} alt="" className="absolute inset-0 h-full w-full object-cover object-bottom" />
+            <img src={A.bg2Cover} alt="" className="absolute inset-0 h-full w-full object-cover object-center" />
           </div>
-          <p className="mt-3 text-2xl font-extrabold tracking-[4px] text-brand-blue">{redeem_code.code}</p>
-          <p className="text-xs text-gray-400 mt-1">有效期限：{new Date(redeem_code.expires_at).toLocaleDateString("zh-TW")}</p>
         </div>
 
-        <p className="text-center text-[13px] text-gray-500 leading-relaxed mb-4">
-          請至活動機台出示此 QR Code，
-          <br />
-          兌換安得利防曬試用包（每人限 1 份）
-        </p>
+        <div className="relative z-10 px-8 pb-8">
+          <img src={A.logo} alt="LA ROCHE-POSAY 理膚寶水" className="mb-4 h-8 object-contain object-left drop-shadow" />
 
-        {/* Share button */}
-        <button
-          type="button"
-          className="cta-primary mb-2 w-full py-4 text-[17px] tracking-widest disabled:opacity-40"
-          onClick={() => setShowSharePopup(true)}
-          disabled={sharing}
-        >
-          {sharing ? "分享中…" : "分享活動 參加抽籤"}
-        </button>
+          {/* 專屬兌換碼 Signboard */}
+          <Signboard className="mb-4">
+            <div className="px-8 py-5 text-center">
+              <h1 className="mb-1 text-xl font-black text-gray-900">您的專屬兌換碼</h1>
+              <SlantedBorder className="mb-4" />
 
-        {shareErr && <p className="text-red-500 text-xs text-center mt-2">{shareErr}</p>}
-      </div>
+              <div className="mx-auto mb-3 flex justify-center rounded-xl bg-white p-3">
+                <QRCodeSVG value={redeem_code.qr_payload} size={200} fgColor="#003e89" />
+              </div>
 
-      {/* ── Blue section with discount codes ── */}
-      <div className="relative overflow-hidden">
-        <div className="absolute inset-0 bg-[#1361b5]" />
-        <img src={A.bgBlueCover} alt="" className="absolute inset-0 w-full h-full object-cover opacity-30 mix-blend-overlay" />
+              <p className="mb-3 text-[12px] font-bold tracking-wide text-gray-400">★ 長按圖片下載 QR Code ★</p>
 
-        <div className="relative z-10 px-5 pt-5 pb-6">
-          {/* Divider with label */}
-          <div className="flex items-center gap-3 mb-4">
-            <div className="flex-1 h-px bg-white/30" />
-            <span className="text-white text-[13px] font-bold whitespace-nowrap">活動紅利指定通路</span>
-            <div className="flex-1 h-px bg-white/30" />
-          </div>
+              <p className="text-[11px] leading-relaxed text-gray-800">
+                請持此 QR Code 前往
+                <span className="font-bold text-brand-orange">指定地點</span>
+              </p>
+              <p className="mt-2 text-[11px] leading-relaxed text-gray-800">設置的派樣機台，掃碼兌換試用組，</p>
+              <p className="pb-4 mt-2 text-[11px] leading-relaxed text-gray-800">每人限領1組，數量有限，送完為止。</p>
 
-          <p className="text-center text-white/80 text-xs mb-4">分享活動後可領取以下通路折扣碼，享受購物優惠！</p>
+              <div className="flex items-start gap-3 border-t border-brand-blue pt-3 text-left">
+                <img src={A.sample} alt="防曬淨痘試用組" className="w-[96px] shrink-0 object-contain sm:w-[108px]" />
+                <div className="min-w-0 text-[11px] leading-relaxed text-gray-800">
+                  <p className="font-bold text-brand-blue">「防曬淨痘試用組」內容包含：</p>
+                  <ul className="mt-1.5 space-y-1">
+                    <li>安得利清爽極效夏卡防曬液 3ml x 2</li>
+                    <li>淨痘無瑕極效精華 3ml x 1</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+          </Signboard>
 
-          <div className="flex flex-col gap-3 mb-5">
-            {/* momo */}
-            <button type="button" className="w-full rounded-full py-3.5 text-[15px] font-bold text-white flex items-center justify-center gap-2 disabled:opacity-50" style={{ background: "#c0392b", border: "2px solid #fff" }} onClick={() => handleDiscountClick("momo")} disabled={claiming}>
-              <span>🛍</span>
+          {/* CTA 按鈕區 */}
+          <div className="mb-4 space-y-2.5">
+            <button type="button" className="cta-primary w-full py-4 text-[17px] tracking-[0.06em] disabled:opacity-40" onClick={() => setShowSharePopup(true)} disabled={sharing}>
+              {sharing ? "分享中…" : "分享活動 參加抽籤"}
+            </button>
+
+            <button type="button" className="share-cta disabled:opacity-50" onClick={() => handleDiscountClick("momo")} disabled={claiming}>
               領取 momo 折扣碼
             </button>
-
-            {/* Shopee */}
-            <button type="button" className="w-full rounded-full py-3.5 text-[15px] font-bold text-white flex items-center justify-center gap-2 disabled:opacity-50" style={{ background: "#f26522", border: "2px solid #fff" }} onClick={() => handleDiscountClick("shopee")} disabled={claiming}>
-              <span>🦈</span>
+            <button type="button" className="share-cta disabled:opacity-50" onClick={() => handleDiscountClick("shopee")} disabled={claiming}>
               領取蝦皮折扣碼
             </button>
-
-            {/* Watson's */}
-            <button type="button" className="w-full rounded-full py-3.5 text-[15px] font-bold text-white flex items-center justify-center gap-2 disabled:opacity-50" style={{ background: "#009bdf", border: "2px solid #fff" }} onClick={() => handleDiscountClick("watsons")} disabled={claiming}>
-              <span>💊</span>
+            <button type="button" className="share-cta disabled:opacity-50" onClick={() => handleDiscountClick("watsons")} disabled={claiming}>
               領取屈臣氏折扣碼
+            </button>
+            <button type="button" className="share-cta disabled:opacity-50" onClick={() => handleDiscountClick("cosmed")} disabled={claiming}>
+              領取康是美折扣碼
             </button>
           </div>
 
-          {claimErr && <p className="text-yellow-300 text-xs text-center -mt-2 mb-3">{claimErr}</p>}
+          {shareErr && <p className="mb-2 text-center text-xs text-red-600 drop-shadow-sm">{shareErr}</p>}
+          {claimErr && <p className="mb-2 text-center text-xs text-red-600 drop-shadow-sm">{claimErr}</p>}
 
-          {/* Vending machine image */}
-          <img src={A.picbot} alt="活動機台" className="mx-auto w-[85%] max-w-xs block" />
+          {/* 活動日期及指定地點 Signboard */}
+          <Signboard className="mb-4">
+            <div className="px-8 py-5">
+              <h2 className="mb-1 text-center text-lg font-black text-gray-900">活動日期及指定地點</h2>
+              <SlantedBorder className="mb-4" />
+              <div className="space-y-4">
+                {VENUES.map((venue) => (
+                  <VenueBlock key={venue.title} venue={venue} onMapClick={() => setShowRules(true)} />
+                ))}
+              </div>
+            </div>
+          </Signboard>
 
-          {/* Location info */}
-          <div className="mt-4 rounded-xl bg-white/10 px-4 py-4 text-white">
-            <h3 className="font-bold text-[13px] mb-2 text-center">活動日暨指定地點</h3>
-            <p className="text-[12px] leading-relaxed text-white/80 text-center">
-              活動地點：全台指定球場 / 皮膚科醫院
-              <br />
-              詳細地點資訊請掃描 QR Code 查看
-            </p>
-          </div>
-
-          <p className="mt-4 text-center text-white/50 text-[11px]">★活動期間：2026/7/3 00時00分 至 2026/8/23 23點59分★</p>
+          <img src={A.picbot} alt="活動派樣機台" className="mx-auto block w-[88%] max-w-[320px]" />
         </div>
+
+        {showSharePopup && <SharePopup onClose={() => setShowSharePopup(false)} onConfirm={() => void handleShare()} sharing={sharing} />}
+
+        {showRules && <ActivityRulesPopup onClose={() => setShowRules(false)} />}
+
+        {showDiscountPopup === "watsons" && <BarcodePopup code={channelCode ?? "---"} onClose={() => setShowDiscountPopup(null)} />}
+
+        {(showDiscountPopup === "momo" || showDiscountPopup === "shopee" || showDiscountPopup === "cosmed") && <TextCodePopup platform={showDiscountPopup} code={channelCode ?? "---"} onClose={() => setShowDiscountPopup(null)} />}
       </div>
-
-      {/* ── Popups ── */}
-
-      {showSharePopup && <SharePopup onClose={() => setShowSharePopup(false)} onConfirm={() => void handleShare()} sharing={sharing} />}
-
-      {showDiscountPopup === "watsons" && <BarcodePopup code={channelCode ?? "---"} onClose={() => setShowDiscountPopup(null)} />}
-
-      {(showDiscountPopup === "momo" || showDiscountPopup === "shopee") && <TextCodePopup platform={showDiscountPopup} code={channelCode ?? "---"} onClose={() => setShowDiscountPopup(null)} />}
-    </div>
+      <footer className="bg-white px-5 py-4 text-center">
+        <p className="text-center text-[11px] text-gray-900">
+          *活動詳情與注意事項請參閱{" "}
+          <button type="button" className="text-brand-blue underline underline-offset-2" onClick={() => setShowRules(true)}>
+            活動辦法
+          </button>
+          。
+        </p>
+      </footer>
+    </>
   );
 }

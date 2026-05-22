@@ -1,4 +1,5 @@
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
+import AuthGate from "@/components/AuthGate";
 import RequireAuth from "@/components/RequireAuth";
 import { AuthProvider } from "@/contexts/AuthContext";
 import ErrorPage from "@/pages/ErrorPage";
@@ -12,6 +13,7 @@ export default function App() {
   return (
     <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
       <AuthProvider>
+        <AuthGate>
         <Routes>
           <Route path="/" element={<HomePage />} />
           <Route
@@ -49,6 +51,7 @@ export default function App() {
           <Route path="/error" element={<ErrorPage />} />
           <Route path="*" element={<Navigate to="/error" replace />} />
         </Routes>
+        </AuthGate>
       </AuthProvider>
     </BrowserRouter>
   );

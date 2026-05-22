@@ -138,7 +138,7 @@ export default function UploadPage() {
       <div className="absolute inset-0 z-0 bg-gradient-to-b from-sky-400 via-blue-500 to-blue-900" />
       <AssetImg src={A.bg} alt="" className="absolute inset-0 z-0 h-full w-full object-cover object-top" />
 
-      <div className="relative z-10 flex min-h-dvh flex-col px-4 pb-32">
+      <div className="relative z-10 flex min-h-dvh flex-col px-8 pb-32">
         {/* Logo */}
         <div className="pb-2 absolute top-0">
           <AssetImg src={A.logo} alt="LA ROCHE-POSAY 理膚寶水" className="h-7 w-auto object-contain object-left" />
@@ -159,27 +159,14 @@ export default function UploadPage() {
 
                 <SlantedBorder className="py-3" />
 
-                <input
-                  ref={inputRef}
-                  type="file"
-                  accept="image/jpeg,image/png,image/heic,image/heif,.heic,.heif,.jpg,.jpeg,.png"
-                  className="hidden"
-                  onChange={handleFileChange}
-                />
+                <input ref={inputRef} type="file" accept="image/jpeg,image/png,image/heic,image/heif,.heic,.heif,.jpg,.jpeg,.png" className="hidden" onChange={handleFileChange} />
 
                 {/* Photo area */}
                 <div className="relative mx-auto mb-4 w-full max-w-[300px]">
                   {preview ? (
-                    <div
-                      className="w-full rounded-2xl p-[3px]"
-                      style={{ background: SIGNBOARD_BORDER_GRADIENT }}
-                    >
+                    <div className="w-full rounded-2xl p-[3px]" style={{ background: SIGNBOARD_BORDER_GRADIENT }}>
                       <div className="relative aspect-[4/5] w-full overflow-hidden rounded-[14px] bg-brand-blue">
-                        <img
-                          src={preview}
-                          alt="預覽"
-                          className="absolute inset-0 h-full w-full object-cover"
-                        />
+                        <img src={preview} alt="預覽" className="absolute inset-0 h-full w-full object-cover" />
                         <CloseButton onClick={clearFile} label="移除照片" variant="preview" />
                       </div>
                     </div>
@@ -272,15 +259,11 @@ export default function UploadPage() {
         {/* 底部前景（帽子／球棒等）+ 頁尾文案同一層 */}
         <div className="pointer-events-none absolute inset-x-0 bottom-10 z-20 mx-auto max-w-mobile">
           <AssetImg src={A.bgCover} alt="" className="block w-full" />
-          <footer className="pointer-events-auto absolute inset-x-0 bottom-0 px-4 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-2 text-center">
+          <footer className="pointer-events-auto absolute inset-x-0 bottom-0 px-8 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-2 text-center">
             <p className="text-xs leading-relaxed text-white drop-shadow-sm">★活動期間：2026/7/3 00時00分 至 2026/8/23 23點59分★</p>
             <p className="mt-1 text-[10px] leading-relaxed text-white/80 drop-shadow-sm">
               *活動詳情與注意事項請參閱{" "}
-              <button
-                type="button"
-                className="text-yellow-300 underline"
-                onClick={() => setShowRules(true)}
-              >
+              <button type="button" className="text-yellow-300 underline" onClick={() => setShowRules(true)}>
                 活動辦法
               </button>
               。

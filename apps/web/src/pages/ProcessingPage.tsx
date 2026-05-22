@@ -6,9 +6,7 @@ const POLL_MS = parseInt(import.meta.env.VITE_POLLING_INTERVAL_MS ?? "2000", 10)
 const TIMEOUT_MS = 60_000;
 
 const A = {
-  // 3_1-processing 設計：UVAIR 防曬產品 dropper 近照（淺藍/白底）
-  // ⚠️ placeholder — 實際素材放入後路徑不變，直接替換檔案即可
-  bgProduct: "/assets/upload-gen-page/pic_genAI_processing_bg.png",
+  bgVideo: "/assets/demo.mp4",
   logo: "/assets/landing-page-home/lp_logo.png",
 } as const;
 
@@ -81,11 +79,15 @@ export default function ProcessingPage() {
 
   return (
     <div className="relative min-h-dvh mx-auto max-w-mobile overflow-hidden bg-[#d8eef6]">
-      {/* ── Background: product dropper image (3_1-processing design) ── */}
-      <img
-        src={A.bgProduct}
-        alt=""
-        className="absolute inset-0 w-full h-full object-cover object-center"
+      {/* ── Background video ── */}
+      <video
+        src={A.bgVideo}
+        autoPlay
+        muted
+        loop
+        playsInline
+        className="absolute inset-0 h-full w-full object-cover object-center"
+        aria-hidden
       />
 
       {/* Top shimmer loading bar */}

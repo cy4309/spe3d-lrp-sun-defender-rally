@@ -1,18 +1,17 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import ActivityRulesPopup from "@/components/ActivityRulesPopup";
+import Signboard from "@/components/Signboard";
 import { useAuth } from "@/contexts/AuthContext";
 import { apiGet } from "@/lib/api";
 
-const CAMPAIGN_CODE =
-  (import.meta.env.VITE_CAMPAIGN_CODE as string) || "anthelios-2026-summer";
+const CAMPAIGN_CODE = (import.meta.env.VITE_CAMPAIGN_CODE as string) || "anthelios-2026-summer";
 
 const A = {
   bg: "/assets/genai_done_qr_page/GenAI_donepage_bg.png",
   slogan: "/assets/genai_done_qr_page/GenAI_donepage_slogan.png",
-  frame: "/assets/upload-gen-page/pic_genAI_frame.png",
   logo: "/assets/landing-page-home/lp_logo.png",
-  baseball: "/assets/genai_done_qr_page/GenAI_donepage_QR_pic_baseball.png",
-  newUvair: "/assets/landing-page-home/landing-page_home_new_uvair.png",
+  sample: "/assets/genai_done_qr_page/GenAI_donepage_QR_pic_sample.png",
 } as const;
 
 type MeResult = {
@@ -46,6 +45,7 @@ export default function ResultPage() {
   const navigate = useNavigate();
   const [result, setResult] = useState<MeResult | null>(null);
   const [loading, setLoading] = useState(true);
+  const [showRules, setShowRules] = useState(false);
   const isMock = auth.phase === "mock";
 
   useEffect(() => {
@@ -63,103 +63,64 @@ export default function ResultPage() {
   if (loading) {
     return (
       <div className="flex min-h-dvh items-center justify-center bg-[#1361b5]">
-        <div className="spinner w-10 h-10" />
+        <div className="spinner h-10 w-10" />
       </div>
     );
   }
 
   if (!result?.redeem_code) {
     return (
-      <div className="flex min-h-dvh flex-col items-center justify-center gap-4 p-6 text-center bg-[#1361b5]">
-        <p className="text-white text-sm">尚無生成結果，請先完成照片上傳。</p>
-        <button className="btn btn-primary" onClick={() => navigate("/upload")}>
+      <div className="flex min-h-dvh flex-col items-center justify-center gap-4 bg-[#1361b5] p-6 text-center">
+        <p className="text-sm text-white">尚無生成結果，請先完成照片上傳。</p>
+        <button type="button" className="btn btn-primary" onClick={() => navigate("/upload")}>
           去上傳
         </button>
       </div>
     );
   }
 
+  const imageSrc = result.result_image_url ?? (isMock ? A.sample : null);
+
   return (
-    <div className="relative mx-auto max-w-mobile min-h-dvh overflow-x-hidden">
-      {/* Background */}
-      <div className="absolute inset-0 z-0 bg-[#1361b5]" />
-      <img
-        src={A.bg}
-        alt=""
-        className="absolute inset-0 z-0 w-full h-full object-cover object-center opacity-70"
-      />
-      {/* gradient overlay so text is readable */}
-      <div className="absolute inset-0 z-0 bg-gradient-to-b from-[#1361b5]/60 via-transparent to-[#0a3a78]/80" />
+    <div className="relative mx-auto min-h-dvh max-w-mobile overflow-x-hidden">
+      <img src={A.bg} alt="" className="absolute inset-0 h-full w-full object-cover object-center" aria-hidden />
 
-      <div className="relative z-10 flex flex-col min-h-dvh">
+      <div className="relative z-10 flex min-h-dvh flex-col">
         {/* Header */}
-        <div className="px-4 pt-4 pb-1">
-          <img src={A.logo} alt="LA ROCHE-POSAY 理膚寶水" className="h-8 object-contain" />
+        <div className="px-8">
+          <img src={A.logo} alt="LA ROCHE-POSAY 理膚寶水" className="h-8 object-contain object-left" />
         </div>
 
-        {/* Slogan */}
-        <div className="px-4 pt-2 pb-3">
-          <img
-            src={A.slogan}
-            alt="理膚寶水 NEW UVAIR 和您一起熱血應援!! 守護陽光下的每一刻"
-            className="w-full max-w-[360px]"
-          />
+        <div className="px-3 pt-1 pb-2">
+          <img src={A.slogan} alt="理膚寶水 NEW UVAIR 和您一起熱血應援!! 守護陽光下的每一刻" className="w-full max-w-[360px]" />
         </div>
 
-        {/* AI photo */}
-        <div className="flex-1 flex flex-col items-center justify-center px-6 py-2">
-          <div className="relative w-full max-w-[300px]">
-            {result.result_image_url ? (
-              <img
-                src={result.result_image_url}
-                alt="AI 應援照"
-                className="w-full rounded-2xl block shadow-2xl"
-              />
-            ) : (
-              <div
-                className="aspect-[3/4] w-full rounded-2xl flex flex-col items-center justify-center gap-2"
-                style={{ background: "rgba(255,255,255,0.15)", backdropFilter: "blur(6px)" }}
-              >
-                <div className="flex items-center gap-2">
-                  <img src={A.newUvair} alt="NEW" className="h-5 object-contain" />
-                  <span className="text-white font-black text-xl tracking-widest">UVAIR</span>
-                </div>
-                <p className="text-white/60 text-sm text-center px-6">
-                  {isMock ? "（Mock 模式：圖片待生成）" : "AI 應援照"}
-                </p>
-              </div>
-            )}
-            {/* Frame overlay */}
-            <img
-              src={A.frame}
-              alt=""
-              className="pointer-events-none absolute inset-0 w-full h-full"
-            />
-          </div>
-
-          {/* Baseball decoration */}
-          <img
-            src={A.baseball}
-            alt=""
-            className="w-12 mt-3 drop-shadow-lg"
-            aria-hidden
-          />
+        {/* Result card（4_1：Signboard 橘藍框 + 下載提示） */}
+        <div className="flex flex-1 flex-col items-center justify-center px-5 py-2">
+          <Signboard className="w-full max-w-[300px]">
+            {imageSrc ? <img src={imageSrc} alt="AI 應援照" className="block w-full" /> : <div className="flex aspect-[3/4] w-full items-center justify-center bg-gray-100 text-sm text-gray-500">應援照載入中…</div>}
+            <p className="py-3 text-center text-[13px] font-bold tracking-wide text-brand-blue">★ 長按圖片下載影像 ★</p>
+          </Signboard>
         </div>
 
-        {/* Bottom CTA */}
-        <div className="px-5 pt-3 pb-6">
-          <button
-            type="button"
-            className="cta-primary w-full py-4 text-[17px] tracking-wide shadow-2xl"
-            onClick={() => navigate("/share", { state: { result } })}
-          >
-            前往領取試用組兌換碼
+        {/* CTA + 說明 + 頁尾 */}
+        <div className="px-5 pb-6 pt-1">
+          <button type="button" className="cta-primary w-full py-4 text-[17px] tracking-[0.08em] shadow-2xl" onClick={() => navigate("/share", { state: { result } })}>
+            獲取試用組兌換碼
           </button>
-          <p className="text-center text-white/60 text-[11px] mt-2">
-            ★活動期間：2026/7/3 00時00分 至 2026/8/23 23點59分★
+          <p className="mt-2 text-center text-[11px] leading-relaxed text-white drop-shadow-sm">兌換碼為一次性QR Code，於機台掃描兌換完成後即失效。</p>
+          <p className="mt-4 text-center text-[11px] leading-relaxed text-white/95 drop-shadow-sm">★ 活動期間：2026/7/3 00時00分 至 2026/8/23 23點59分 ★</p>
+          <p className="mt-1 text-center text-[11px] leading-relaxed text-white/90">
+            *活動詳情與注意事項請參閱{" "}
+            <button type="button" className="text-[#ffe566] underline underline-offset-2" onClick={() => setShowRules(true)}>
+              活動辦法
+            </button>
+            。
           </p>
         </div>
       </div>
+
+      {showRules && <ActivityRulesPopup onClose={() => setShowRules(false)} />}
     </div>
   );
 }

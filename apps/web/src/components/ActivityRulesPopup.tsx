@@ -138,7 +138,7 @@ export default function ActivityRulesPopup({ onClose }: { onClose: () => void })
         </div>
 
         <div className="shrink-0 border-t border-gray-100 px-5 py-4">
-          <button type="button" className="btn btn-primary btn-block py-3 text-sm" onClick={onClose}>
+          <button type="button" className="btn btn-secondary btn-block py-3 text-sm" onClick={onClose}>
             確認
           </button>
         </div>

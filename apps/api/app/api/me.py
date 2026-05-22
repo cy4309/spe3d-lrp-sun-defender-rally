@@ -3,22 +3,26 @@ from __future__ import annotations
 
 from uuid import uuid4
 
-from fastapi import APIRouter, Depends, HTTPException
+from pathlib import Path
+
+from fastapi import APIRouter, Depends, File, HTTPException, Request, UploadFile
 from sqlalchemy import select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db import get_session
 from app.deps import active_campaign_by_code, current_user, get_user_campaign
 from app.models import ChannelCode, GenerationJob, RedeemCode, Share, UserCampaign
+from app.config import get_settings
 from app.schemas import (
     ChannelCodeResponse,
     LotteryResponse,
     MeResultResponse,
     RedeemCodeOut,
+    ShareCardResponse,
     ShareRequest,
     ShareResponse,
 )
-from app.utils import build_qr_payload, image_url, now_utc
+from app.utils import build_qr_payload, image_url, now_utc, public_image_url
 
 router = APIRouter()
 
@@ -71,6 +75,38 @@ async def get_my_result(
         ),
         channel_code=cc.code if cc else None,
     )
+
+
+@router.post("/share-card", response_model=ShareCardResponse)
+async def upload_share_card(
+    request: Request,
+    campaign_code: str,
+    file: UploadFile = File(...),
+    user=Depends(current_user),
+    session: AsyncSession = Depends(get_session),
+):
+    """上傳前端合成的分享卡 PNG，回傳可供 LINE Flex 使用的公開圖片 URL。"""
+    campaign = await active_campaign_by_code(campaign_code, session)
+    uc = await get_user_campaign(user.id, campaign.id, session)
+    if uc is None:
+        raise HTTPException(status_code=404, detail="user_campaign_not_found")
+    if uc.status == "authorized":
+        raise HTTPException(status_code=403, detail={"code": "not_eligible"})
+
+    raw = await file.read()
+    if not raw:
+        raise HTTPException(status_code=400, detail={"code": "empty_file"})
+    if len(raw) > 8_000_000:
+        raise HTTPException(status_code=400, detail={"code": "file_too_large"})
+
+    settings = get_settings()
+    now = now_utc()
+    rel = f"share/{now:%Y/%m/%d}/{uuid4().hex}.png"
+    full = Path(settings.image_storage_path) / rel
+    full.parent.mkdir(parents=True, exist_ok=True)
+    full.write_bytes(raw)
+
+    return ShareCardResponse(share_image_url=public_image_url(rel, request))
 
 
 @router.post("/share", response_model=ShareResponse)
