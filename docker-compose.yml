@@ -36,6 +36,7 @@ services:
     env_file: .env
     volumes:
       - ./apps/api:/app
+      - ./tools:/app/tools:ro
       - ./storage:/data
     ports:
       - "8000:8000"
@@ -52,6 +53,9 @@ services:
       dockerfile: Dockerfile
     restart: unless-stopped
     env_file: .env
+    environment:
+      # 容器內不能用 localhost 連 API，必須用 compose 服務名
+      APP_BASE_URL: http://api:8000
     volumes:
       - ./apps/worker:/app
       - ./storage:/data

@@ -95,6 +95,12 @@ class MeResultResponse(BaseModel):
     channel_code: str | None = None
 
 
+class PushResultImageResponse(BaseModel):
+    pushed: bool
+    skipped: bool = False
+    reason: str | None = None
+
+
 class ShareRequest(BaseModel):
     target: str = "line"
 

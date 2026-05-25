@@ -87,7 +87,31 @@ def public_image_url(relative_path: str, request: Request | None = None) -> str:
             prefix = base if base.startswith("/") else f"/{base}"
             return f"{proto}://{host}{prefix}/{path}"
 
+    # 無 Request（不應發生於需給 LINE 的 URL）— 改走對外 origin
+    public = external_public_origin()
+    if public.startswith(("http://", "https://")):
+        prefix = base if base.startswith("/") else f"/{base}"
+        return f"{public}{prefix}/{path}"
     return f"{base}/{path}"
+
+
+def external_public_origin() -> str:
+    """對外可給 LINE 使用的 origin（須 HTTPS）。優先 PUBLIC_BASE_URL，否則 APP_BASE_URL。"""
+    settings = get_settings()
+    origin = (settings.public_base_url or settings.app_base_url).strip().rstrip("/")
+    return origin
+
+
+def absolute_public_image_url(relative_path: str) -> str:
+    """無 HTTP Request 時組絕對圖片 URL（worker / background push 用）。"""
+    settings = get_settings()
+    base = settings.image_base_url.rstrip("/")
+    path = relative_path.lstrip("/")
+    if base.startswith(("http://", "https://")):
+        return f"{base}/{path}"
+    origin = external_public_origin()
+    prefix = base if base.startswith("/") else f"/{base}"
+    return f"{origin}{prefix}/{path}"
 
 
 def build_qr_payload(code: str) -> str:

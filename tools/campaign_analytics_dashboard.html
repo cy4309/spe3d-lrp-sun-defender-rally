@@ -1,0 +1,593 @@
+<!doctype html>
+<!--
+  活動數據儀表板（dev only，免密碼）
+
+  ngrok 範例：
+    ngrok http 5173
+    https://xxxx.ngrok-free.app/tools/campaign_analytics_dashboard.html
+
+  本機：
+    http://localhost:5173/tools/campaign_analytics_dashboard.html
+    或 http://localhost:8000/tools/campaign_analytics_dashboard.html
+-->
+<html lang="zh-TW">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>安得利防曬活動 — 數據儀表板</title>
+    <style>
+      :root {
+        --blue: #0056a8;
+        --orange: #f07a1a;
+        --bg: #f4f7fb;
+        --card: #fff;
+        --text: #1a2b3c;
+        --muted: #5c6b7a;
+        --border: #d8e2ef;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        font-family: "Segoe UI", "Microsoft JhengHei", sans-serif;
+        background: var(--bg);
+        color: var(--text);
+        line-height: 1.5;
+      }
+      .wrap {
+        max-width: 1100px;
+        margin: 0 auto;
+        padding: 24px 20px 48px;
+      }
+      header {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: flex-end;
+        justify-content: space-between;
+        gap: 12px;
+        margin-bottom: 20px;
+      }
+      h1 {
+        margin: 0;
+        font-size: 1.5rem;
+        color: var(--blue);
+      }
+      .subtitle {
+        margin: 4px 0 0;
+        color: var(--muted);
+        font-size: 0.9rem;
+      }
+      .panel {
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 16px 20px;
+        margin-bottom: 20px;
+      }
+      .panel h2 {
+        margin: 0 0 12px;
+        font-size: 1rem;
+        color: var(--blue);
+      }
+      .form-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+        align-items: flex-end;
+      }
+      label {
+        display: block;
+        font-size: 0.8rem;
+        color: var(--muted);
+        margin-bottom: 4px;
+      }
+      input[type="date"] {
+        padding: 8px 10px;
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        font-size: 0.95rem;
+      }
+      button {
+        cursor: pointer;
+        border: none;
+        border-radius: 8px;
+        padding: 10px 20px;
+        font-weight: 600;
+        font-size: 0.9rem;
+        background: var(--blue);
+        color: #fff;
+      }
+      button.secondary {
+        background: #e8f0fa;
+        color: var(--blue);
+      }
+      .kpi-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+        gap: 14px;
+      }
+      .kpi {
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 16px;
+        text-align: left;
+      }
+      .kpi .num {
+        font-size: 1.85rem;
+        font-weight: 700;
+        color: var(--blue);
+        text-align: center;
+      }
+      .kpi.highlight .num {
+        color: var(--orange);
+      }
+      .kpi .label {
+        font-size: 0.88rem;
+        font-weight: 600;
+        color: var(--text);
+        margin-top: 8px;
+        text-align: center;
+      }
+      .kpi .hint {
+        font-size: 0.75rem;
+        color: var(--muted);
+        margin-top: 8px;
+        line-height: 1.45;
+        border-top: 1px solid var(--border);
+        padding-top: 8px;
+      }
+      .msg {
+        padding: 10px 14px;
+        border-radius: 8px;
+        margin-bottom: 16px;
+        font-size: 0.9rem;
+      }
+      .msg.error {
+        background: #fde8e8;
+        color: #a32020;
+      }
+      .meta {
+        font-size: 0.8rem;
+        color: var(--muted);
+      }
+      .tabs {
+        display: flex;
+        gap: 8px;
+        margin-bottom: 16px;
+      }
+      .tabs button {
+        background: #e8f0fa;
+        color: var(--blue);
+      }
+      .tabs button.active {
+        background: var(--blue);
+        color: #fff;
+      }
+      .bar-row {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin: 6px 0;
+        font-size: 0.82rem;
+      }
+      .bar-row .label {
+        width: 140px;
+        flex-shrink: 0;
+        text-align: right;
+        color: var(--muted);
+      }
+      .bar-row .track {
+        flex: 1;
+        height: 18px;
+        background: #eef2f7;
+        border-radius: 4px;
+        overflow: hidden;
+      }
+      .bar-row .fill {
+        height: 100%;
+        background: var(--blue);
+        border-radius: 4px;
+      }
+      .bar-row .fill.orange {
+        background: var(--orange);
+      }
+      .bar-row .val {
+        width: 48px;
+        text-align: right;
+        font-weight: 600;
+      }
+      .audit {
+        padding: 10px 12px;
+        border-radius: 8px;
+        margin-bottom: 10px;
+        font-size: 0.82rem;
+      }
+      .audit.warn {
+        background: #fff8e6;
+        border-left: 3px solid var(--orange);
+      }
+      .audit.info {
+        background: #f0f7ff;
+        border-left: 3px solid var(--blue);
+      }
+      .schema-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 0.78rem;
+        margin-top: 8px;
+      }
+      .schema-table th,
+      .schema-table td {
+        border: 1px solid var(--border);
+        padding: 6px 8px;
+        text-align: left;
+      }
+      .schema-table th {
+        background: #f8fafc;
+      }
+      .tag {
+        display: inline-block;
+        padding: 1px 6px;
+        border-radius: 4px;
+        font-size: 0.7rem;
+        font-weight: 600;
+      }
+      .tag.used {
+        background: #d4edda;
+        color: #155724;
+      }
+      .tag.partial {
+        background: #fff3cd;
+        color: #856404;
+      }
+      .tag.unused {
+        background: #e9ecef;
+        color: #6c757d;
+      }
+      .tag.reserved {
+        background: #e8f0fa;
+        color: var(--blue);
+      }
+      details.schema-block {
+        margin-bottom: 10px;
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        padding: 8px 12px;
+        background: #fafbfc;
+      }
+      details.schema-block summary {
+        cursor: pointer;
+        font-weight: 600;
+      }
+      .data-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 0.8rem;
+      }
+      .data-table th,
+      .data-table td {
+        border: 1px solid var(--border);
+        padding: 6px 8px;
+      }
+      .data-table th {
+        background: #f8fafc;
+      }
+      .hidden {
+        display: none;
+      }
+      @media print {
+        .panel.config {
+          display: none;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <header>
+        <div>
+          <h1>理膚寶水 · 安得利防曬應援</h1>
+          <p class="subtitle">活動數據儀表板</p>
+        </div>
+        <p class="meta" id="metaUpdated">載入中…</p>
+      </header>
+
+      <section class="panel config">
+        <h2>查詢日期（Asia/Taipei）</h2>
+        <div class="form-row">
+          <div>
+            <label for="dateFrom">起始日</label>
+            <input id="dateFrom" type="date" />
+          </div>
+          <div>
+            <label for="dateTo">結束日</label>
+            <input id="dateTo" type="date" />
+          </div>
+          <button type="button" id="btnQuery">查詢</button>
+          <button type="button" class="secondary" id="btnToday">今天</button>
+          <button type="button" class="secondary" id="btnExport">匯出 JSON</button>
+        </div>
+      </section>
+
+      <div id="messageArea"></div>
+
+      <nav class="tabs">
+        <button type="button" class="active" data-tab="pm">PM 指標</button>
+        <button type="button" data-tab="db">資料庫總覽</button>
+      </nav>
+
+      <div id="tabPm">
+        <div class="kpi-grid" id="kpiGrid"></div>
+      </div>
+
+      <div id="tabDb" class="hidden">
+        <section class="panel" id="auditPanel"></section>
+        <section class="panel">
+          <h2>各表列數（查詢區間／全活動）</h2>
+          <div id="tableCountBars"></div>
+        </section>
+        <div class="grid2" style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px">
+          <section class="panel">
+            <h2>參與狀態分布</h2>
+            <div id="ucStatusBars"></div>
+          </section>
+          <section class="panel">
+            <h2>生圖任務狀態</h2>
+            <div id="gjStatusBars"></div>
+          </section>
+        </div>
+        <section class="panel">
+          <h2>瀏覽路徑（區間內）</h2>
+          <div id="pvPathBars"></div>
+        </section>
+        <section class="panel">
+          <h2>最近 8 筆參與者</h2>
+          <div style="overflow-x: auto" id="recentUcTable"></div>
+        </section>
+        <section class="panel">
+          <h2>欄位目錄（共 13 張表）</h2>
+          <p class="ui-note" style="margin: 0 0 10px">
+            標籤：used=程式有寫入 · partial=API 有但流程未接 · unused=目前無資料 · reserved=預留
+          </p>
+          <div id="schemaCatalog"></div>
+        </section>
+      </div>
+    </div>
+
+    <script>
+      const API_BASE = window.location.origin;
+      const CAMPAIGN_CODE = new URLSearchParams(location.search).get("campaign") || "anthelios-2026-summer";
+      let lastPayload = null;
+      let lastDbPayload = null;
+
+      const KPI_CONFIG = [
+        {
+          key: "page_views",
+          label: "網頁瀏覽次數",
+          hint: "資料表 page_views。使用者每次進入 LIFF 不同路由（首頁、上傳、處理中…）會 POST 一筆；查詢區間內全部列數加總（同一人換頁會重複計次）。",
+        },
+        {
+          key: "unique_page_viewers",
+          label: "不重複瀏覽人數",
+          hint: "資料表 page_views。查詢區間內，以 LINE user id（line_user_id）去重後的人數；未登入前進頁可能無 id 而不計入。",
+        },
+        {
+          key: "participants",
+          label: "參與活動人數",
+          highlight: true,
+          hint: "資料表 user_campaigns。查詢區間內 consent_at（勾選同意活動條款）落在區間內的人數；代表正式參與，非僅開啟首頁。",
+        },
+        {
+          key: "ai_image_sharers",
+          label: "分享 AI 生圖人數",
+          highlight: true,
+          hint: "資料表 user_campaigns。查詢區間內 shared_at 落在區間內且 shared = true 的人數；即完成「分享活動／應援照」的人數（每人至多計一次）。",
+        },
+        {
+          key: "share_actions",
+          label: "分享次數",
+          highlight: true,
+          hint: "資料表 shares。查詢區間內 shared_at 落在區間內的列數；每次按下分享並成功紀錄都會 +1，同一人可大於 1。",
+        },
+        {
+          key: "new_fans",
+          label: "新增粉絲",
+          highlight: true,
+          hint: "資料表 line_follow_events。查詢區間內 event_type = follow 的次數（含 LINE 解封鎖後的 follow，is_unblocked = true）；需乙方 webhook 轉發才會有資料。",
+        },
+        {
+          key: "lottery_eligible",
+          label: "抽獎資格人數",
+          highlight: true,
+          hint: "資料表 user_campaigns。查詢區間內 shared_at 落在區間內且 lottery_eligible = true 的人數；目前規則為完成分享後即取得抽獎資格。",
+        },
+      ];
+
+      function taipeiToday() {
+        return new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Taipei" });
+      }
+
+      function setTodayInputs() {
+        const t = taipeiToday();
+        document.getElementById("dateFrom").value = t;
+        document.getElementById("dateTo").value = t;
+      }
+
+      function showMessage(text, type) {
+        document.getElementById("messageArea").innerHTML =
+          text ? `<div class="msg ${type}">${text}</div>` : "";
+      }
+
+      function renderKpis(totals) {
+        document.getElementById("kpiGrid").innerHTML = KPI_CONFIG.map((k) => {
+          const v = totals[k.key] ?? 0;
+          const cls = k.highlight ? "kpi highlight" : "kpi";
+          return `<div class="${cls}">
+            <div class="num">${Number(v).toLocaleString()}</div>
+            <div class="label">${k.label}</div>
+            <p class="hint">${k.hint}</p>
+          </div>`;
+        }).join("");
+      }
+
+      function renderBars(containerId, items, useOrange) {
+        const el = document.getElementById(containerId);
+        if (!items.length) {
+          el.innerHTML = "<p class='ui-note'>尚無資料</p>";
+          return;
+        }
+        const max = Math.max(...items.map((i) => i.count), 1);
+        el.innerHTML = items
+          .map(
+            (i) => `<div class="bar-row">
+          <span class="label">${i.label}</span>
+          <span class="track"><span class="fill ${useOrange ? "orange" : ""}" style="width:${(i.count / max) * 100}%"></span></span>
+          <span class="val">${i.count}</span>
+        </div>`,
+          )
+          .join("");
+      }
+
+      function renderDbInspect(db) {
+        lastDbPayload = db;
+        document.getElementById("auditPanel").innerHTML =
+          `<h2>欄位稽核摘要</h2>` +
+          db.audit_notes
+            .map(
+              (n) => `<div class="audit ${n.level}">
+            <strong>${n.title}</strong>
+            <ul>${n.items.map((i) => `<li>${i}</li>`).join("")}</ul>
+          </div>`,
+            )
+            .join("");
+
+        const c = db.table_counts;
+        renderBars(
+          "tableCountBars",
+          [
+            { label: "page_views（區間）", count: c.page_views },
+            { label: "shares（區間）", count: c.shares },
+            { label: "consent_logs（區間）", count: c.consent_logs },
+            { label: "line_follow（區間）", count: c.line_follow_events },
+            { label: "user_campaigns（全活動）", count: c.user_campaigns },
+            { label: "generation_jobs（全活動）", count: c.generation_jobs },
+            { label: "redeem_codes", count: c.redeem_codes },
+            { label: "channel 已發/總", count: c.channel_codes_assigned },
+            { label: "channel 總池", count: c.channel_codes_total },
+            { label: "lottery_draws", count: c.lottery_draws },
+            { label: "push_logs（全庫）", count: c.push_logs },
+          ],
+          false,
+        );
+
+        renderBars("ucStatusBars", db.distributions.user_campaign_status, true);
+        renderBars("gjStatusBars", db.distributions.generation_job_status, false);
+        renderBars("pvPathBars", db.distributions.page_views_by_path, false);
+
+        const rows = db.recent_user_campaigns;
+        document.getElementById("recentUcTable").innerHTML = rows.length
+          ? `<table class="data-table"><thead><tr>
+            <th>line_user_id</th><th>status</th><th>同意</th><th>分享</th><th>抽獎資格</th><th>建立</th>
+          </tr></thead><tbody>${rows
+            .map(
+              (r) => `<tr>
+              <td>${r.line_user_id}</td><td>${r.status}</td>
+              <td>${r.consented ? "✓" : "—"}</td><td>${r.shared ? "✓" : "—"}</td>
+              <td>${r.lottery_eligible ? "✓" : "—"}</td>
+              <td>${r.created_at ? r.created_at.slice(0, 19) : "—"}</td>
+            </tr>`,
+            )
+            .join("")}</tbody></table>`
+          : "<p class='ui-note'>尚無參與者</p>";
+
+        document.getElementById("schemaCatalog").innerHTML = db.schema_catalog
+          .map(
+            (t) => `<details class="schema-block">
+            <summary>${t.table} — ${t.label} <span class="tag ${t.phase === "Phase 6" ? "partial" : "used"}">${t.phase}</span></summary>
+            <table class="schema-table"><thead><tr><th>欄位</th><th>狀態</th><th>說明</th></tr></thead>
+            <tbody>${t.columns
+              .map(
+                (col) => `<tr><td>${col.name}</td><td><span class="tag ${col.usage}">${col.usage}</span></td><td>${col.note}</td></tr>`,
+              )
+              .join("")}</tbody></table>
+          </details>`,
+          )
+          .join("");
+      }
+
+      function queryParams() {
+        const dateFrom = document.getElementById("dateFrom").value;
+        const dateTo = document.getElementById("dateTo").value;
+        return { dateFrom, dateTo, params: new URLSearchParams({ campaign_code: CAMPAIGN_CODE, date_from: dateFrom, date_to: dateTo }) };
+      }
+
+      async function fetchAll() {
+        const { dateFrom, dateTo, params } = queryParams();
+        if (!dateFrom || !dateTo) {
+          showMessage("請選擇起始日與結束日", "error");
+          return;
+        }
+
+        showMessage("載入中…", "info");
+        try {
+          const [statsRes, dbRes] = await Promise.all([
+            fetch(`${API_BASE}/api/v1/admin/stats?${params}`),
+            fetch(`${API_BASE}/api/v1/admin/db-inspect?${params}`),
+          ]);
+          const statsBody = await statsRes.json().catch(() => ({}));
+          const dbBody = await dbRes.json().catch(() => ({}));
+          if (!statsRes.ok) throw new Error(JSON.stringify(statsBody.detail ?? statsBody));
+          if (!dbRes.ok) throw new Error(JSON.stringify(dbBody.detail ?? dbBody));
+
+          lastPayload = statsBody;
+          renderKpis(statsBody.totals);
+          renderDbInspect(dbBody);
+
+          const localTime = new Date(statsBody.generated_at).toLocaleString("zh-TW", {
+            timeZone: "Asia/Taipei",
+          });
+          document.getElementById("metaUpdated").textContent =
+            `${statsBody.campaign.name} · ${statsBody.period.date_from}～${statsBody.period.date_to} · ${localTime}`;
+          showMessage("", "");
+        } catch (e) {
+          showMessage(`載入失敗：${e.message}`, "error");
+        }
+      }
+
+      document.querySelectorAll(".tabs button").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          document.querySelectorAll(".tabs button").forEach((b) => b.classList.remove("active"));
+          btn.classList.add("active");
+          const tab = btn.getAttribute("data-tab");
+          document.getElementById("tabPm").classList.toggle("hidden", tab !== "pm");
+          document.getElementById("tabDb").classList.toggle("hidden", tab !== "db");
+        });
+      });
+
+      document.getElementById("btnQuery").addEventListener("click", fetchAll);
+      document.getElementById("btnToday").addEventListener("click", () => {
+        setTodayInputs();
+        fetchAll();
+      });
+      document.getElementById("btnExport").addEventListener("click", () => {
+        if (!lastPayload) {
+          showMessage("請先查詢成功後再匯出", "error");
+          return;
+        }
+        const blob = new Blob(
+          JSON.stringify({ stats: lastPayload, db_inspect: lastDbPayload }, null, 2),
+          { type: "application/json" },
+        );
+        const a = document.createElement("a");
+        a.href = URL.createObjectURL(blob);
+        a.download = `stats-${lastPayload.period.date_from}_${lastPayload.period.date_to}.json`;
+        a.click();
+      });
+
+      setTodayInputs();
+      fetchAll();
+    </script>
+  </body>
+</html>

@@ -1,0 +1,832 @@
+<!doctype html>
+<!--
+  使用者流程 API 測試台（dev only）
+
+  開啟：
+    https://你的-ngrok.ngrok-free.app/tools/campaign_flow_tester.html
+    http://localhost:5173/tools/campaign_flow_tester.html
+
+  請在 LINE 內開啟此頁，並將此 URL 加入 LIFF Endpoint（與正式活動相同 LIFF ID）。
+  按「使用 LINE 登入」會自動完成步驟 ①② 並帶入 token。
+-->
+<html lang="zh-TW">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>活動流程 API 測試台</title>
+    <script charset="utf-8" src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+    <style>
+      :root {
+        --blue: #0056a8;
+        --orange: #f07a1a;
+        --green: #1a7f4b;
+        --bg: #f4f7fb;
+        --card: #fff;
+        --text: #1a2b3c;
+        --muted: #5c6b7a;
+        --border: #d8e2ef;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        font-family: "Segoe UI", "Microsoft JhengHei", sans-serif;
+        background: var(--bg);
+        color: var(--text);
+        line-height: 1.5;
+      }
+      .wrap {
+        max-width: 960px;
+        margin: 0 auto;
+        padding: 20px 16px 48px;
+      }
+      h1 {
+        margin: 0;
+        font-size: 1.4rem;
+        color: var(--blue);
+      }
+      .sub {
+        color: var(--muted);
+        font-size: 0.88rem;
+        margin: 6px 0 16px;
+      }
+      .panel {
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        padding: 14px 16px;
+        margin-bottom: 14px;
+      }
+      .panel h2 {
+        margin: 0 0 10px;
+        font-size: 0.95rem;
+        color: var(--blue);
+      }
+      label {
+        display: block;
+        font-size: 0.78rem;
+        color: var(--muted);
+        margin-bottom: 4px;
+      }
+      input[type="text"],
+      input[type="password"],
+      textarea {
+        width: 100%;
+        padding: 8px;
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        font-size: 0.85rem;
+        font-family: inherit;
+      }
+      textarea {
+        min-height: 56px;
+        resize: vertical;
+      }
+      .grid2 {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+      }
+      @media (max-width: 640px) {
+        .grid2 {
+          grid-template-columns: 1fr;
+        }
+      }
+      .step {
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        margin-bottom: 12px;
+        overflow: hidden;
+        background: var(--card);
+      }
+      .step-head {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 8px;
+        padding: 12px 14px;
+        background: #f8fafc;
+        border-bottom: 1px solid var(--border);
+      }
+      .step-no {
+        font-weight: 700;
+        color: var(--blue);
+        min-width: 1.5rem;
+      }
+      .step-title {
+        font-weight: 600;
+        flex: 1;
+      }
+      .badge {
+        font-size: 0.72rem;
+        padding: 2px 8px;
+        border-radius: 999px;
+        font-weight: 600;
+      }
+      .badge.pending {
+        background: #eef2f7;
+        color: var(--muted);
+      }
+      .badge.running {
+        background: #fff3cd;
+        color: #856404;
+      }
+      .badge.done {
+        background: #d4edda;
+        color: var(--green);
+      }
+      .badge.error {
+        background: #fde8e8;
+        color: #a32020;
+      }
+      .badge.skip {
+        background: #e8f0fa;
+        color: var(--blue);
+      }
+      .api-line {
+        font-family: Consolas, monospace;
+        font-size: 0.8rem;
+        color: var(--orange);
+      }
+      .step-body {
+        padding: 12px 14px;
+        font-size: 0.84rem;
+      }
+      .db-note {
+        background: #f0f7ff;
+        border-left: 3px solid var(--blue);
+        padding: 8px 10px;
+        margin: 8px 0;
+        font-size: 0.8rem;
+      }
+      .ui-note {
+        color: var(--muted);
+        font-size: 0.78rem;
+      }
+      button {
+        cursor: pointer;
+        border: none;
+        border-radius: 6px;
+        padding: 8px 14px;
+        font-weight: 600;
+        font-size: 0.82rem;
+        background: var(--blue);
+        color: #fff;
+      }
+      button.secondary {
+        background: #e8f0fa;
+        color: var(--blue);
+      }
+      button:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+      pre {
+        margin: 8px 0 0;
+        padding: 10px;
+        background: #1e293b;
+        color: #e2e8f0;
+        border-radius: 6px;
+        font-size: 0.75rem;
+        overflow: auto;
+        max-height: 220px;
+      }
+      .ctx {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        font-size: 0.78rem;
+      }
+      .ctx span {
+        background: #eef2f7;
+        padding: 4px 8px;
+        border-radius: 4px;
+      }
+      .row-btns {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-top: 8px;
+      }
+      .login-panel {
+        border: 2px solid var(--blue);
+        background: linear-gradient(180deg, #f0f7ff 0%, #fff 100%);
+      }
+      .btn-line {
+        background: #06c755;
+        font-size: 1rem;
+        padding: 12px 24px;
+      }
+      .profile {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin-top: 12px;
+        padding: 10px;
+        background: #f8fafc;
+        border-radius: 8px;
+      }
+      .profile img {
+        width: 48px;
+        height: 48px;
+        border-radius: 50%;
+      }
+      .status-ok {
+        color: var(--green);
+        font-weight: 600;
+        font-size: 0.88rem;
+      }
+      details.advanced {
+        margin-top: 12px;
+        font-size: 0.82rem;
+      }
+      details.advanced summary {
+        cursor: pointer;
+        color: var(--muted);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <h1>活動流程 API 測試台</h1>
+      <p class="sub">
+        對照 LIFF 正式流程逐步打 API，右側狀態會更新；下方顯示請求／回應 JSON。API 網址 =
+        <code id="apiOrigin"></code>
+      </p>
+
+      <section class="panel login-panel">
+        <h2>LINE 登入（自動完成步驟 ①②）</h2>
+        <p class="ui-note" style="margin: 0 0 10px">
+          請用 <strong>LINE App</strong> 開啟此頁（或掃碼）。須與正式活動相同之 LIFF ID，且此完整網址已登記在 LINE Developers → LIFF → Endpoint URL。
+        </p>
+        <div class="grid2">
+          <div>
+            <label for="liffId">LIFF ID</label>
+            <input id="liffId" type="text" value="2010019044-cUm4OxFM" />
+          </div>
+          <div>
+            <label for="campaignCode">活動代碼</label>
+            <input id="campaignCode" type="text" value="anthelios-2026-summer" />
+          </div>
+        </div>
+        <div class="row-btns" style="margin-top: 12px">
+          <button type="button" class="btn-line" id="btnLineLogin">使用 LINE 登入</button>
+          <button type="button" class="secondary" id="btnOpenApp">開啟正式 LIFF 首頁</button>
+          <button type="button" class="secondary" id="btnClearLog">清除 Log</button>
+        </div>
+        <p id="loginStatus" class="ui-note" style="margin-top: 10px"></p>
+        <div id="profileBox" class="profile" style="display: none">
+          <img id="profileImg" alt="" />
+          <div>
+            <div id="profileName" style="font-weight: 600"></div>
+            <div id="profileLineId" class="ui-note"></div>
+            <div class="status-ok" id="profileOk">已連線後端 · Bearer 已就緒</div>
+          </div>
+        </div>
+        <details class="advanced">
+          <summary>進階：手動貼 Token（一般不需要）</summary>
+          <div style="margin-top: 8px">
+            <label for="accessToken">Session Token（Bearer）</label>
+            <input id="accessToken" type="password" />
+            <label for="idToken" style="margin-top: 8px">LINE id_token</label>
+            <textarea id="idToken" placeholder="僅除錯用"></textarea>
+            <div class="row-btns">
+              <button type="button" class="secondary" data-run="auth_line">僅執行 ② 後端登入（用手動 id_token）</button>
+            </div>
+          </div>
+        </details>
+        <div class="ctx" style="margin-top: 10px" id="ctxBar">
+          <span>user_id: —</span>
+          <span>user_campaign_id: —</span>
+          <span>job_id: —</span>
+        </div>
+      </section>
+
+      <div id="steps"></div>
+    </div>
+
+    <script>
+      const API_BASE = window.location.origin;
+      document.getElementById("apiOrigin").textContent = API_BASE;
+
+      const LIFF_STORAGE_KEY = "lrp_flow_tester_liff_id";
+      const DEFAULT_LIFF_ID = "2010019044-cUm4OxFM";
+
+      const state = {
+        accessToken: "",
+        userId: null,
+        lineUserId: null,
+        userCampaignId: null,
+        jobId: null,
+        pollTimer: null,
+        liffReady: false,
+      };
+
+      const STEPS = [
+        {
+          id: "liff",
+          title: "LIFF 初始化＋登入（僅前端 SDK）",
+          ui: "App 啟動 / AuthContext",
+          api: "liff.init() → liff.login() → liff.getIDToken()",
+          db: "尚未寫入後端 DB。按上方「使用 LINE 登入」會自動執行本步。",
+          needsAuth: false,
+          loginStep: true,
+        },
+        {
+          id: "auth_line",
+          title: "後端登入",
+          ui: "AuthContext 自動呼叫",
+          api: "POST /api/v1/auth/line",
+          db: [
+            "line_users：建立或更新 line_user_id、display_name、last_authorized_at",
+            "user_campaigns：建立或更新一筆（status 通常 authorized）",
+            "回應 Header X-Access-Token → 後續 API 的 Bearer",
+          ],
+          needsAuth: false,
+          loginStep: true,
+          run: runAuthLine,
+        },
+        {
+          id: "page_view",
+          title: "紀錄頁面瀏覽",
+          ui: "PageViewTracker 每次換路由",
+          api: "POST /api/v1/analytics/page-view",
+          db: ["page_views：campaign_id, path, line_user_id, user_id, viewed_at"],
+          needsAuth: false,
+          run: () => runPageView("/"),
+        },
+        {
+          id: "consent",
+          title: "同意活動條款",
+          ui: "上傳頁勾選（正式 App 尚未接 API 可手動測）",
+          api: "POST /api/v1/auth/consent?campaign_code=…",
+          db: [
+            "user_campaigns.consent_at、consent_version",
+            "consent_logs：user_id, campaign_id, version, consented_at",
+          ],
+          needsAuth: true,
+          run: runConsent,
+        },
+        {
+          id: "create_job",
+          title: "上傳照片、建立生圖任務",
+          ui: "UploadPage「開始製作」",
+          api: "POST /api/v1/jobs（multipart: image, user_campaign_id）",
+          db: [
+            "generation_jobs：status=queued, input_image_path, ai_style…",
+            "磁碟 storage/inputs/…",
+            "Redis RPUSH queue:generation ← job_id",
+          ],
+          needsAuth: true,
+          run: runCreateJob,
+          hasFile: true,
+        },
+        {
+          id: "worker",
+          title: "Worker 背景生圖（mock）",
+          ui: "ProcessingPage 等待中",
+          api: "GET /api/v1/internal/jobs/{id} → POST …/result（需 X-Internal-Token，瀏覽器不會呼叫）",
+          db: [
+            "generation_jobs：status=succeeded, output_image_path, completed_at",
+            "user_campaigns：status → generated（若原為 authorized）",
+            "redeem_codes：新建一筆 unused 兌換碼",
+          ],
+          needsAuth: false,
+          passive: true,
+        },
+        {
+          id: "poll_job",
+          title: "輪詢生圖狀態",
+          ui: "ProcessingPage 每 2 秒",
+          api: "GET /api/v1/jobs/{job_id}",
+          db: ["讀取 generation_jobs.status；succeeded 時一併回傳 redeem_code"],
+          needsAuth: true,
+          run: runPollJob,
+          runPollLoop: true,
+        },
+        {
+          id: "me_result",
+          title: "取得結果頁資料",
+          ui: "ResultPage / SharePage",
+          api: "GET /api/v1/me/result?campaign_code=…",
+          db: ["讀取最新 succeeded job、redeem_codes、channel_codes（已領則有）"],
+          needsAuth: true,
+          run: runMeResult,
+        },
+        {
+          id: "share_card",
+          title: "上傳分享合成圖",
+          ui: "SharePage 分享前",
+          api: "POST /api/v1/me/share-card?campaign_code=…（multipart file）",
+          db: ["storage/share/yyyy/mm/dd/*.png；回傳公開 share_image_url"],
+          needsAuth: true,
+          run: runShareCard,
+          hasShareFile: true,
+        },
+        {
+          id: "share",
+          title: "紀錄分享、取得抽獎資格",
+          ui: "SharePage 分享成功後",
+          api: "POST /api/v1/me/share?campaign_code=…",
+          db: [
+            "shares：一筆分享紀錄",
+            "user_campaigns：shared=true, shared_at, lottery_eligible=true, status 可能 → shared",
+          ],
+          needsAuth: true,
+          run: runShare,
+        },
+        {
+          id: "channel_code",
+          title: "領取通路折扣碼",
+          ui: "ResultPage 彈窗",
+          api: "POST /api/v1/me/channel-code?campaign_code=…",
+          db: ["channel_codes：從未分配池指派 user_campaign_id、assigned_at"],
+          needsAuth: true,
+          run: runChannelCode,
+        },
+      ];
+
+      function authHeaders() {
+        const t = document.getElementById("accessToken").value.trim() || state.accessToken;
+        return t ? { Authorization: `Bearer ${t}` } : {};
+      }
+
+      function campaignCode() {
+        return document.getElementById("campaignCode").value.trim() || "anthelios-2026-summer";
+      }
+
+      function setBadge(id, status) {
+        const el = document.querySelector(`[data-badge="${id}"]`);
+        if (el) {
+          el.className = `badge ${status}`;
+          el.textContent =
+            { pending: "待執行", running: "執行中", done: "完成", error: "失敗", skip: "說明" }[status] ||
+            status;
+        }
+      }
+
+      function setLog(id, payload) {
+        const pre = document.querySelector(`[data-log="${id}"]`);
+        if (pre) pre.textContent = typeof payload === "string" ? payload : JSON.stringify(payload, null, 2);
+      }
+
+      function updateCtx() {
+        document.getElementById("ctxBar").innerHTML = `
+          <span>line_user_id: ${state.lineUserId ?? "—"}</span>
+          <span>user_id: ${state.userId ?? "—"}</span>
+          <span>user_campaign_id: ${state.userCampaignId ?? "—"}</span>
+          <span>job_id: ${state.jobId ?? "—"}</span>
+        `;
+      }
+
+      function getLiffId() {
+        const v = document.getElementById("liffId").value.trim();
+        return v || DEFAULT_LIFF_ID;
+      }
+
+      function setLoginStatus(msg, isError) {
+        const el = document.getElementById("loginStatus");
+        el.textContent = msg;
+        el.style.color = isError ? "#a32020" : "";
+      }
+
+      function showProfile(profile, body) {
+        const box = document.getElementById("profileBox");
+        box.style.display = "flex";
+        document.getElementById("profileImg").src = profile.pictureUrl || "";
+        document.getElementById("profileName").textContent = profile.displayName || "（無暱稱）";
+        document.getElementById("profileLineId").textContent = `LINE: ${profile.userId}`;
+        if (body?.user_campaign) {
+          document.getElementById("profileOk").textContent =
+            `已連線後端 · user_campaign.status = ${body.user_campaign.status}`;
+        }
+      }
+
+      async function ensureLiff() {
+        if (typeof liff === "undefined") throw new Error("LIFF SDK 未載入，請檢查網路");
+        const liffId = getLiffId();
+        localStorage.setItem(LIFF_STORAGE_KEY, liffId);
+        if (!state.liffReady) {
+          setBadge("liff", "running");
+          setLoginStatus("正在初始化 LIFF…");
+          await liff.init({ liffId });
+          state.liffReady = true;
+          setBadge("liff", "done");
+          setLog("liff", { ok: true, liffId, isInClient: liff.isInClient(), isLoggedIn: liff.isLoggedIn() });
+        }
+      }
+
+      async function loginWithLine() {
+        try {
+          await ensureLiff();
+          if (!liff.isInClient()) {
+            setLoginStatus(
+              "目前不在 LINE App 內。請將此連結貼到 LINE 聊天室開啟，或用手機 LINE 掃描 ngrok 網址。",
+              true,
+            );
+          }
+          if (!liff.isLoggedIn()) {
+            setLoginStatus("導向 LINE 登入…完成後會回到此頁並自動帶入資料");
+            liff.login({ redirectUri: window.location.href });
+            return;
+          }
+          await syncBackendFromLiff();
+        } catch (e) {
+          setLoginStatus(String(e.message || e), true);
+          setBadge("liff", "error");
+        }
+      }
+
+      async function syncBackendFromLiff() {
+        setLoginStatus("已取得 LINE 登入，正在呼叫後端…");
+        const profile = await liff.getProfile();
+        const idToken = liff.getIDToken();
+        if (!idToken) throw new Error("無法取得 id_token，請重新登入");
+
+        document.getElementById("idToken").value = idToken;
+        setLog("liff", { profile, idTokenPreview: `${idToken.slice(0, 24)}…` });
+
+        setBadge("auth_line", "running");
+        const { body } = await apiCall("auth_line", "POST", "/api/v1/auth/line", {
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            id_token: idToken,
+            campaign_code: campaignCode(),
+            entry_source: new URLSearchParams(location.search).get("entry_source") || "unknown",
+            referrer_user_id: null,
+          }),
+        });
+
+        state.userId = body.user?.id;
+        state.lineUserId = body.user?.line_user_id;
+        state.userCampaignId = body.user_campaign?.id;
+        if (state.accessToken) {
+          sessionStorage.setItem("access_token", state.accessToken);
+        }
+        updateCtx();
+        showProfile(profile, body);
+        setLoginStatus("登入完成！可從步驟 ③ 開始測試。");
+      }
+
+      async function apiCall(stepId, method, path, options = {}) {
+        setBadge(stepId, "running");
+        const url = path.startsWith("http") ? path : `${API_BASE}${path}`;
+        const headers = { ...options.headers };
+        try {
+          const res = await fetch(url, { method, ...options, headers });
+          const text = await res.text();
+          let body;
+          try {
+            body = JSON.parse(text);
+          } catch {
+            body = text;
+          }
+          const token = res.headers.get("X-Access-Token");
+          if (token) {
+            state.accessToken = token;
+            document.getElementById("accessToken").value = token;
+          }
+          const log = { status: res.status, statusText: res.statusText, body };
+          setLog(stepId, log);
+          if (!res.ok) {
+            setBadge(stepId, "error");
+            throw new Error(typeof body?.detail === "string" ? body.detail : JSON.stringify(body?.detail ?? body));
+          }
+          setBadge(stepId, "done");
+          return { res, body };
+        } catch (e) {
+          if (document.querySelector(`[data-badge="${stepId}"]`)?.textContent === "執行中") {
+            setBadge(stepId, "error");
+          }
+          setLog(stepId, { error: String(e.message || e) });
+          throw e;
+        }
+      }
+
+      async function runAuthLine() {
+        const idToken = document.getElementById("idToken").value.trim();
+        if (!idToken) throw new Error("請貼上 LINE id_token");
+        const { body } = await apiCall("auth_line", "POST", "/api/v1/auth/line", {
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            id_token: idToken,
+            campaign_code: campaignCode(),
+            entry_source: "unknown",
+            referrer_user_id: null,
+          }),
+        });
+        state.userId = body.user?.id;
+        state.lineUserId = body.user?.line_user_id;
+        state.userCampaignId = body.user_campaign?.id;
+        if (state.accessToken) sessionStorage.setItem("access_token", state.accessToken);
+        updateCtx();
+      }
+
+      async function runPageView(path) {
+        await apiCall("page_view", "POST", "/api/v1/analytics/page-view", {
+          headers: { "Content-Type": "application/json", ...authHeaders() },
+          body: JSON.stringify({ campaign_code: campaignCode(), path }),
+        });
+      }
+
+      async function runConsent() {
+        const q = new URLSearchParams({ campaign_code: campaignCode() });
+        await apiCall("consent", "POST", `/api/v1/auth/consent?${q}`, {
+          headers: { "Content-Type": "application/json", ...authHeaders() },
+          body: JSON.stringify({ consent_version: "2026-06-01" }),
+        });
+      }
+
+      async function runCreateJob() {
+        if (!state.userCampaignId) throw new Error("請先完成步驟 ② 登入");
+        const fileInput = document.getElementById("uploadImage");
+        if (!fileInput?.files?.[0]) throw new Error("請選擇圖片");
+        const form = new FormData();
+        form.append("image", fileInput.files[0]);
+        form.append("user_campaign_id", state.userCampaignId);
+        const { body } = await apiCall("create_job", "POST", "/api/v1/jobs", {
+          headers: authHeaders(),
+          body: form,
+        });
+        state.jobId = body.job_id;
+        updateCtx();
+        setBadge("worker", "running");
+      }
+
+      async function runPollJob() {
+        if (!state.jobId) throw new Error("請先建立 job（步驟 ⑤）");
+        const { body } = await apiCall("poll_job", "GET", `/api/v1/jobs/${state.jobId}`, {
+          headers: authHeaders(),
+        });
+        if (body.status === "succeeded") {
+          setBadge("worker", "done");
+          setLog("worker", {
+            note: "Worker 已回寫 succeeded（見 internal API）",
+            result_image_url: body.result_image_url,
+            redeem_code: body.redeem_code,
+          });
+        } else if (body.status === "failed_final") {
+          setBadge("worker", "error");
+        } else {
+          setBadge("worker", "running");
+        }
+        return body;
+      }
+
+      function stopPollLoop() {
+        if (state.pollTimer) {
+          clearInterval(state.pollTimer);
+          state.pollTimer = null;
+        }
+      }
+
+      function startPollLoop() {
+        stopPollLoop();
+        state.pollTimer = setInterval(async () => {
+          try {
+            const body = await runPollJob();
+            if (body.status === "succeeded" || body.status === "failed_final") stopPollLoop();
+          } catch {
+            stopPollLoop();
+          }
+        }, 2000);
+      }
+
+      async function runMeResult() {
+        const q = new URLSearchParams({ campaign_code: campaignCode() });
+        await apiCall("me_result", "GET", `/api/v1/me/result?${q}`, { headers: authHeaders() });
+      }
+
+      async function runShareCard() {
+        const fileInput = document.getElementById("shareImage");
+        if (!fileInput?.files?.[0]) throw new Error("請選擇分享用 PNG");
+        const form = new FormData();
+        form.append("file", fileInput.files[0]);
+        const q = new URLSearchParams({ campaign_code: campaignCode() });
+        await apiCall("share_card", "POST", `/api/v1/me/share-card?${q}`, {
+          headers: authHeaders(),
+          body: form,
+        });
+      }
+
+      async function runShare() {
+        const q = new URLSearchParams({ campaign_code: campaignCode() });
+        await apiCall("share", "POST", `/api/v1/me/share?${q}`, {
+          headers: { "Content-Type": "application/json", ...authHeaders() },
+          body: JSON.stringify({ target: "line" }),
+        });
+      }
+
+      async function runChannelCode() {
+        const q = new URLSearchParams({ campaign_code: campaignCode() });
+        await apiCall("channel_code", "POST", `/api/v1/me/channel-code?${q}`, {
+          headers: authHeaders(),
+        });
+      }
+
+      function renderSteps() {
+        const root = document.getElementById("steps");
+        root.innerHTML = STEPS.map((s, i) => {
+          const fileBlock = s.hasFile
+            ? `<div style="margin-top:8px"><label>測試用照片</label><input type="file" id="uploadImage" accept="image/jpeg,image/png" /></div>`
+            : "";
+          const shareFile = s.hasShareFile
+            ? `<div style="margin-top:8px"><label>分享合成圖 PNG</label><input type="file" id="shareImage" accept="image/png" /></div>`
+            : "";
+          const btns = s.passive
+            ? `<p class="ui-note">此步由 worker 容器自動執行，請在 ⑤ 建立 job 後用 ⑦ 輪詢觀察狀態變化。</p>`
+            : s.loginStep
+              ? `<p class="ui-note">由上方「使用 LINE 登入」自動完成，亦可展開進階手動執行。</p>`
+              : `<div class="row-btns">
+              <button type="button" data-run="${s.id}">執行此步</button>
+              ${s.runPollLoop ? `<button type="button" class="secondary" data-poll="${s.id}">開始自動輪詢（2s）</button><button type="button" class="secondary" data-stop-poll>停止輪詢</button>` : ""}
+            </div>`;
+          const dbHtml = Array.isArray(s.db)
+            ? `<ul class="db-note">${s.db.map((d) => `<li>${d}</li>`).join("")}</ul>`
+            : `<div class="db-note">${s.db}</div>`;
+          return `
+          <article class="step" data-step="${s.id}">
+            <div class="step-head">
+              <span class="step-no">${i + 1}</span>
+              <span class="step-title">${s.title}</span>
+              <span class="badge ${s.passive ? "skip" : s.loginStep ? "pending" : "pending"}" data-badge="${s.id}">${s.passive ? "說明" : "待執行"}</span>
+            </div>
+            <div class="step-body">
+              <div class="ui-note">對應頁面：${s.ui}</div>
+              <div class="api-line" style="margin-top:6px">${s.api}</div>
+              ${dbHtml}
+              ${fileBlock}${shareFile}${btns}
+              <pre data-log="${s.id}">（尚無紀錄）</pre>
+            </div>
+          </article>`;
+        }).join("");
+
+        root.querySelector("[data-poll]")?.addEventListener("click", startPollLoop);
+        root.querySelector("[data-stop-poll]")?.addEventListener("click", stopPollLoop);
+      }
+
+      async function runStepById(id, btn) {
+        const step = STEPS.find((x) => x.id === id);
+        if (!step?.run) return;
+        if (btn) btn.disabled = true;
+        try {
+          await step.run();
+        } catch (_) {}
+        if (btn) btn.disabled = false;
+      }
+
+      document.body.addEventListener("click", (e) => {
+        const btn = e.target.closest("[data-run]");
+        if (!btn) return;
+        void runStepById(btn.getAttribute("data-run"), btn);
+      });
+
+      document.getElementById("btnLineLogin").addEventListener("click", () => loginWithLine());
+      document.getElementById("btnOpenApp").addEventListener("click", () => {
+        window.location.href = `${API_BASE}/`;
+      });
+
+      document.getElementById("btnClearLog").addEventListener("click", () => {
+        STEPS.forEach((s) => {
+          setLog(s.id, "（尚無紀錄）");
+          if (!s.passive && !s.loginStep) setBadge(s.id, "pending");
+        });
+        setBadge("worker", "skip");
+        setBadge("liff", "pending");
+        setBadge("auth_line", "pending");
+      });
+
+      renderSteps();
+
+      const savedLiff = localStorage.getItem(LIFF_STORAGE_KEY);
+      if (savedLiff) document.getElementById("liffId").value = savedLiff;
+
+      const savedToken = sessionStorage.getItem("access_token");
+      if (savedToken) {
+        state.accessToken = savedToken;
+        document.getElementById("accessToken").value = savedToken;
+      }
+
+      updateCtx();
+
+      (async function resumeAfterLineRedirect() {
+        if (typeof liff === "undefined") {
+          setLoginStatus("LIFF SDK 載入中…若無法登入請重新整理");
+          return;
+        }
+        try {
+          await ensureLiff();
+          if (liff.isLoggedIn()) {
+            setLoginStatus("偵測到 LINE 已登入，正在同步後端…");
+            await syncBackendFromLiff();
+          } else {
+            setLoginStatus("請按「使用 LINE 登入」開始（需在 LINE App 內開啟）");
+          }
+        } catch (e) {
+          setLoginStatus(`LIFF 就緒檢查：${e.message || e}`, true);
+        }
+      })();
+    </script>
+  </body>
+</html>

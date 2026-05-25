@@ -2,15 +2,10 @@
   "// === Python (apps/api, apps/worker) ===": "",
   "python.analysis.typeCheckingMode": "basic",
   "python.analysis.autoSearchPaths": true,
-  "python.analysis.extraPaths": [
-    "apps/api",
-    "apps/worker"
-  ],
+  "python.analysis.extraPaths": ["apps/api", "apps/worker"],
   "python.testing.pytestEnabled": true,
   "python.testing.unittestEnabled": false,
-  "python.testing.pytestArgs": [
-    "apps/api/tests"
-  ],
+  "python.testing.pytestArgs": ["apps/api/tests"],
   "[python]": {
     "editor.tabSize": 4,
     "editor.formatOnSave": true,
@@ -83,10 +78,8 @@
 
   "// === Claude / Anthropic extension ===": "",
   "claude.workingDirectory": "${workspaceFolder}",
-  "claude.contextFiles": [
-    "CLAUDE.md",
-    "README.md",
-    "docs/01-roadmap.md",
-    "docs/PHASE4_KICKOFF.md"
-  ]
+  "claude.contextFiles": ["CLAUDE.md", "README.md", "docs/01-roadmap.md", "docs/PHASE4_KICKOFF.md"],
+  "cursorpyright.analysis.autoSearchPaths": true,
+  "cursorpyright.analysis.extraPaths": ["apps/api", "apps/worker"],
+  "cursorpyright.analysis.typeCheckingMode": "basic"
 }

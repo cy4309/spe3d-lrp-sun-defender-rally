@@ -80,7 +80,6 @@
 
   /* 主 CTA 大按鈕（橘） */
   .cta-primary,
-  .upload-cta,
   .home-cta {
     @apply rounded-full text-center font-black text-white;
     background: linear-gradient(180deg, #ff8c2a 0%, #f47a1f 55%, #e86a10 100%);
@@ -88,16 +87,21 @@
     box-shadow: 0 4px 12px rgba(244, 122, 31, 0.45);
   }
 
-  .upload-cta {
-    @apply py-[18px] text-[20px] tracking-[0.12em] shadow-[0_6px_16px_rgba(244,122,31,0.5)];
+  /* 上傳頁 CTA：enabled / disabled 分開，避免與橘色共用導致 disabled 仍像可點擊 */
+  .upload-cta:not(:disabled) {
+    @apply rounded-full text-center font-black text-white py-[18px] text-[20px] tracking-[0.12em];
+    background: linear-gradient(180deg, #ff8c2a 0%, #f47a1f 55%, #e86a10 100%);
+    border: 2px solid #fff;
+    box-shadow: 0 6px 16px rgba(244, 122, 31, 0.5);
   }
 
   .upload-cta:disabled {
-    background: #f8ebe0;
-    color: #f0c9a8;
-    border: 2px solid #fff;
-    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.12);
-    opacity: 1;
+    @apply rounded-full text-center font-black py-[18px] text-[20px] tracking-[0.12em];
+    background: linear-gradient(180deg, #fcd4b0 0%, #f5b88a 55%, #eca96e 100%) !important;
+    color: #fff !important;
+    border: 2px solid rgba(255, 255, 255, 0.9) !important;
+    box-shadow: 0 2px 8px rgba(244, 122, 31, 0.15) !important;
+    opacity: 1 !important;
   }
 
   .home-cta {

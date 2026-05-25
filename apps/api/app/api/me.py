@@ -12,17 +12,19 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.db import get_session
 from app.deps import active_campaign_by_code, current_user, get_user_campaign
 from app.models import ChannelCode, GenerationJob, RedeemCode, Share, UserCampaign
+from app.services.result_image_push import try_push_result_image
 from app.config import get_settings
 from app.schemas import (
     ChannelCodeResponse,
     LotteryResponse,
     MeResultResponse,
+    PushResultImageResponse,
     RedeemCodeOut,
     ShareCardResponse,
     ShareRequest,
     ShareResponse,
 )
-from app.utils import build_qr_payload, image_url, now_utc, public_image_url
+from app.utils import build_qr_payload, now_utc, public_image_url
 
 router = APIRouter()
 
@@ -30,6 +32,7 @@ router = APIRouter()
 @router.get("/result", response_model=MeResultResponse)
 async def get_my_result(
     campaign_code: str,
+    request: Request,
     user=Depends(current_user),
     session: AsyncSession = Depends(get_session),
 ):
@@ -65,7 +68,9 @@ async def get_my_result(
     return MeResultResponse(
         user_campaign_id=uc.id,
         status=uc.status,
-        result_image_url=image_url(job.output_image_path) if job and job.output_image_path else None,
+        result_image_url=public_image_url(job.output_image_path, request)
+        if job and job.output_image_path
+        else None,
         redeem_code=(
             RedeemCodeOut(
                 code=rc.code, qr_payload=build_qr_payload(rc.code),
@@ -75,6 +80,37 @@ async def get_my_result(
         ),
         channel_code=cc.code if cc else None,
     )
+
+
+@router.post("/push-result-image", response_model=PushResultImageResponse)
+async def push_result_image(
+    campaign_code: str,
+    request: Request,
+    user=Depends(current_user),
+    session: AsyncSession = Depends(get_session),
+):
+    """結果頁進入時推送應援照至 LINE 聊天室（冪等，與 worker 完成後推送共用 push_logs）。"""
+    campaign = await active_campaign_by_code(campaign_code, session)
+    uc = await get_user_campaign(user.id, campaign.id, session)
+    if uc is None:
+        raise HTTPException(status_code=404, detail="user_campaign_not_found")
+
+    stmt = (
+        select(GenerationJob)
+        .where(GenerationJob.user_campaign_id == uc.id, GenerationJob.status == "succeeded")
+        .order_by(GenerationJob.completed_at.desc())
+        .limit(1)
+    )
+    job = (await session.execute(stmt)).scalar_one_or_none()
+    if job is None or not job.output_image_path:
+        raise HTTPException(status_code=404, detail={"code": "result_not_ready"})
+
+    pushed, reason = await try_push_result_image(session, job_id=job.id, request=request)
+    if pushed:
+        return PushResultImageResponse(pushed=True)
+    if reason == "already_sent":
+        return PushResultImageResponse(pushed=False, skipped=True, reason=reason)
+    return PushResultImageResponse(pushed=False, skipped=True, reason=reason)
 
 
 @router.post("/share-card", response_model=ShareCardResponse)

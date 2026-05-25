@@ -67,16 +67,33 @@ async def verify_internal(
         raise HTTPException(status_code=403, detail="invalid_internal_token")
 
 
+async def verify_partner_webhook(
+    x_partner_token: Annotated[str | None, Header(alias="X-Partner-Token")] = None,
+) -> None:
+    settings = get_settings()
+    if not settings.partner_webhook_token:
+        raise HTTPException(status_code=503, detail="partner_webhook_not_configured")
+    if not x_partner_token or not secrets.compare_digest(
+        x_partner_token, settings.partner_webhook_token
+    ):
+        raise HTTPException(status_code=403, detail="invalid_partner_token")
+
+
 # --- 撈當前活動（active 且時間在範圍內）----------------------------------
-async def active_campaign_by_code(
-    code: str,
-    session: AsyncSession,
-) -> Campaign:
+async def campaign_by_code(code: str, session: AsyncSession) -> Campaign:
     stmt = select(Campaign).where(Campaign.code == code)
     res = await session.execute(stmt)
     campaign = res.scalar_one_or_none()
     if not campaign:
         raise HTTPException(status_code=404, detail="campaign_not_found")
+    return campaign
+
+
+async def active_campaign_by_code(
+    code: str,
+    session: AsyncSession,
+) -> Campaign:
+    campaign = await campaign_by_code(code, session)
     if campaign.status != "active":
         raise HTTPException(status_code=403, detail="campaign_not_active")
     return campaign

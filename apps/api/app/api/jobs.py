@@ -10,7 +10,7 @@ from __future__ import annotations
 from uuid import UUID, uuid4
 
 import redis.asyncio as redis_async
-from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
+from fastapi import APIRouter, Depends, File, Form, HTTPException, Request, UploadFile
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -19,7 +19,7 @@ from app.db import get_session
 from app.deps import current_user
 from app.models import GenerationJob, RedeemCode, UserCampaign, Campaign
 from app.schemas import JobCreatedResponse, JobStatusResponse, RedeemCodeOut
-from app.utils import build_qr_payload, image_url, now_utc, save_image
+from app.utils import build_qr_payload, now_utc, public_image_url, save_image
 
 router = APIRouter()
 settings = get_settings()
@@ -106,6 +106,7 @@ async def create_job(
 @router.get("/{job_id}", response_model=JobStatusResponse)
 async def get_job(
     job_id: UUID,
+    request: Request,
     user=Depends(current_user),
     session: AsyncSession = Depends(get_session),
 ):
@@ -137,7 +138,9 @@ async def get_job(
         return JobStatusResponse(
             job_id=job.id,
             status="succeeded",
-            result_image_url=image_url(job.output_image_path) if job.output_image_path else None,
+            result_image_url=public_image_url(job.output_image_path, request)
+            if job.output_image_path
+            else None,
             redeem_code=rc_out,
         )
 

@@ -17,6 +17,9 @@ Phase 2 建專案骨架時會把這些放進 `.env.example`，現在先把該蒐
 | `LINE_CHANNEL_SECRET` | webhook 驗簽 | LINE Developers Console |
 | `INTERNAL_API_TOKEN` | worker / 排程呼內部 API | 自產隨機 64 字元 |
 | `MACHINE_API_TOKEN_SIGNING_KEY` | 機台 token 簽發 | 自產 |
+| `PARTNER_WEBHOOK_TOKEN` | 乙方轉發 LINE webhook `POST /api/v1/webhook/line-events` | 自產後提供乙方 |
+
+PM 儀表板：`APP_DEBUG=true` 時開 `/tools/campaign_analytics_dashboard.html` 與 `GET /api/v1/admin/stats`（免 token，僅 dev）。
 | `IMAGE_STORAGE_PATH` | 本地圖片儲存目錄 | `/data/images`（容器內） |
 | `IMAGE_BASE_URL` | 圖片回傳給前端的 URL 前綴 | 例如 `https://api.lrp.com.tw/img` |
 | `COMFYUI_BASE_URL` | comfyUI proxy | 待 picbot 端提供 |

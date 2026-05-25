@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from uuid import UUID, uuid4
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -11,6 +11,7 @@ from app.db import get_session
 from app.deps import verify_internal
 from app.models import Campaign, GenerationJob, RedeemCode, UserCampaign
 from app.schemas import JobResultWebhook
+from app.services.result_image_push import push_result_image_for_job
 from app.utils import generate_redeem_code, now_utc
 
 router = APIRouter()
@@ -40,6 +41,7 @@ async def get_job_for_worker(
 async def write_job_result(
     job_id: UUID,
     body: JobResultWebhook,
+    background_tasks: BackgroundTasks,
     session: AsyncSession = Depends(get_session),
 ):
     """worker 跑完 comfyUI 後呼叫此 API 回寫結果。
@@ -100,6 +102,7 @@ async def write_job_result(
                 session.add(rc)
 
         await session.commit()
+        background_tasks.add_task(push_result_image_for_job, job_id)
         return {"ok": True, "status": "succeeded"}
 
     # status == "failed"

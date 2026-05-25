@@ -118,3 +118,20 @@ export async function apiPostForm<T>(path: string, formData: FormData): Promise<
 }
 
 export const apiBaseUrl = API_BASE;
+
+const CAMPAIGN_CODE = (import.meta.env.VITE_CAMPAIGN_CODE as string) || "";
+
+/** 上報頁面瀏覽（失敗不影響使用者流程） */
+export async function recordPageView(path: string): Promise<void> {
+  if (!CAMPAIGN_CODE) return;
+  try {
+    const url = new URL(`${API_BASE}/api/v1/analytics/page-view`, window.location.origin);
+    await fetch(url.toString(), {
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...authHeaders() },
+      body: JSON.stringify({ campaign_code: CAMPAIGN_CODE, path }),
+    });
+  } catch {
+    /* ignore */
+  }
+}

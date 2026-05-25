@@ -191,6 +191,33 @@ class PushLog(Base):
     sent_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
 
 
+class PageView(Base):
+    __tablename__ = "page_views"
+
+    id: Mapped[UUID] = mapped_column(PG_UUID(as_uuid=True), primary_key=True)
+    campaign_id: Mapped[UUID] = mapped_column(PG_UUID(as_uuid=True), ForeignKey("campaigns.id"), nullable=False)
+    path: Mapped[str] = mapped_column(Text, nullable=False)
+    line_user_id: Mapped[str | None] = mapped_column(Text)
+    user_id: Mapped[UUID | None] = mapped_column(PG_UUID(as_uuid=True), ForeignKey("line_users.id"))
+    viewed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+
+
+LINE_FOLLOW_EVENT_TYPE = Enum("follow", "unfollow", name="line_follow_event_type", create_type=False)
+
+
+class LineFollowEvent(Base):
+    __tablename__ = "line_follow_events"
+
+    id: Mapped[UUID] = mapped_column(PG_UUID(as_uuid=True), primary_key=True)
+    line_user_id: Mapped[str] = mapped_column(Text, nullable=False)
+    event_type: Mapped[str] = mapped_column(LINE_FOLLOW_EVENT_TYPE, nullable=False)
+    is_unblocked: Mapped[bool] = mapped_column(Boolean, nullable=False)
+    campaign_id: Mapped[UUID | None] = mapped_column(PG_UUID(as_uuid=True), ForeignKey("campaigns.id"))
+    user_id: Mapped[UUID | None] = mapped_column(PG_UUID(as_uuid=True), ForeignKey("line_users.id"))
+    occurred_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    raw_payload: Mapped[dict | None] = mapped_column(JSONB)
+
+
 class ConsentLog(Base):
     __tablename__ = "consent_logs"
 

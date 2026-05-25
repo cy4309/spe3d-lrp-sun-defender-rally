@@ -23,6 +23,9 @@ log = logging.getLogger("worker")
 
 REDIS_URL = os.getenv("REDIS_URL", "redis://redis:6379/0")
 API_BASE = os.getenv("APP_BASE_URL", "http://api:8000")
+# .env 常設 localhost 給瀏覽器；在 Docker 內 worker 必須改打 api 服務
+if Path("/.dockerenv").exists() and ("localhost" in API_BASE or "127.0.0.1" in API_BASE):
+    API_BASE = "http://api:8000"
 INTERNAL_TOKEN = os.getenv("INTERNAL_API_TOKEN", "")
 IMAGE_STORAGE = Path(os.getenv("IMAGE_STORAGE_PATH", "/data/images"))
 QUEUE_KEY = "queue:generation"
@@ -93,7 +96,7 @@ async def _process_job(job_id: str) -> None:
 
 
 async def main() -> None:
-    log.info("worker started — connecting to %s", REDIS_URL)
+    log.info("worker started — redis=%s api=%s", REDIS_URL, API_BASE)
     client = redis_async.from_url(REDIS_URL, decode_responses=True)
 
     stop = asyncio.Event()

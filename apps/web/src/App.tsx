@@ -1,5 +1,6 @@
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import AuthGate from "@/components/AuthGate";
+import PageViewTracker from "@/components/PageViewTracker";
 import RequireAuth from "@/components/RequireAuth";
 import { AuthProvider } from "@/contexts/AuthContext";
 import ErrorPage from "@/pages/ErrorPage";
@@ -13,6 +14,7 @@ export default function App() {
   return (
     <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
       <AuthProvider>
+        <PageViewTracker />
         <AuthGate>
         <Routes>
           <Route path="/" element={<HomePage />} />

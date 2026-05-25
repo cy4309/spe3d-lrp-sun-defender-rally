@@ -1,9 +1,10 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import ActivityRulesPopup from "@/components/ActivityRulesPopup";
+import CtaPrimaryButton from "@/components/CtaPrimaryButton";
 import Signboard from "@/components/Signboard";
 import { useAuth } from "@/contexts/AuthContext";
-import { apiGet } from "@/lib/api";
+import { apiGet, apiPost } from "@/lib/api";
 
 const CAMPAIGN_CODE = (import.meta.env.VITE_CAMPAIGN_CODE as string) || "anthelios-2026-summer";
 
@@ -46,6 +47,7 @@ export default function ResultPage() {
   const [result, setResult] = useState<MeResult | null>(null);
   const [loading, setLoading] = useState(true);
   const [showRules, setShowRules] = useState(false);
+  const pushRequestedRef = useRef(false);
   const isMock = auth.phase === "mock";
 
   useEffect(() => {
@@ -59,6 +61,17 @@ export default function ResultPage() {
       .catch(() => navigate("/error"))
       .finally(() => setLoading(false));
   }, [isMock, navigate]);
+
+  /** 生圖完成進入結果頁時，同步 Push 應援照至 LINE 聊天室（後端冪等） */
+  useEffect(() => {
+    if (isMock || !result?.result_image_url || pushRequestedRef.current) return;
+    pushRequestedRef.current = true;
+    void apiPost<{ pushed: boolean; skipped?: boolean }>("/api/v1/me/push-result-image", undefined, {
+      campaign_code: CAMPAIGN_CODE,
+    }).catch(() => {
+      pushRequestedRef.current = false;
+    });
+  }, [isMock, result?.result_image_url]);
 
   if (loading) {
     return (
@@ -91,23 +104,22 @@ export default function ResultPage() {
           <img src={A.logo} alt="LA ROCHE-POSAY 理膚寶水" className="h-8 object-contain object-left" />
         </div>
 
-        <div className="px-3 pt-1 pb-2">
-          <img src={A.slogan} alt="理膚寶水 NEW UVAIR 和您一起熱血應援!! 守護陽光下的每一刻" className="w-full max-w-[360px]" />
-        </div>
-
-        {/* Result card（4_1：Signboard 橘藍框 + 下載提示） */}
-        <div className="flex flex-1 flex-col items-center justify-center px-5 py-2">
-          <Signboard className="w-full max-w-[300px]">
-            {imageSrc ? <img src={imageSrc} alt="AI 應援照" className="block w-full" /> : <div className="flex aspect-[3/4] w-full items-center justify-center bg-gray-100 text-sm text-gray-500">應援照載入中…</div>}
-            <p className="py-3 text-center text-[13px] font-bold tracking-wide text-brand-blue">★ 長按圖片下載影像 ★</p>
-          </Signboard>
+        {/* 標語 + 應援照同一層；標語略疊在照片上緣（對齊設計稿） */}
+        <div className="flex flex-1 flex-col items-center justify-center px-5">
+          <div className="relative w-full max-w-[320px]">
+            <img src={A.slogan} alt="理膚寶水 NEW UVAIR 和您一起熱血應援!! 守護陽光下的每一刻" className="relative z-20 mx-auto block w-full -mb-12" />
+            <Signboard className="relative z-10 w-full">
+              {imageSrc ? <img src={imageSrc} alt="AI 應援照" className="block w-full border-[10px] border-white rounded-[20px]" /> : <div className="flex aspect-[3/4] w-full items-center justify-center bg-gray-100 text-sm text-gray-500">應援照載入中…</div>}
+              <p className="pb-3 text-center text-[13px] font-bold tracking-wide text-brand-blue">★ 長按圖片下載影像 ★</p>
+            </Signboard>
+          </div>
         </div>
 
         {/* CTA + 說明 + 頁尾 */}
-        <div className="px-5 pb-6 pt-1">
-          <button type="button" className="cta-primary w-full py-4 text-[17px] tracking-[0.08em] shadow-2xl" onClick={() => navigate("/share", { state: { result } })}>
+        <div className="px-5">
+          <CtaPrimaryButton elevated onClick={() => navigate("/share", { state: { result } })}>
             獲取試用組兌換碼
-          </button>
+          </CtaPrimaryButton>
           <p className="mt-2 text-center text-[11px] leading-relaxed text-white drop-shadow-sm">兌換碼為一次性QR Code，於機台掃描兌換完成後即失效。</p>
           <p className="mt-4 text-center text-[11px] leading-relaxed text-white/95 drop-shadow-sm">★ 活動期間：2026/7/3 00時00分 至 2026/8/23 23點59分 ★</p>
           <p className="mt-1 text-center text-[11px] leading-relaxed text-white/90">

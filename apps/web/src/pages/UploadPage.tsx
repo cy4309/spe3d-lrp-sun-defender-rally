@@ -2,6 +2,7 @@ import { useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import ActivityRulesPopup from "@/components/ActivityRulesPopup";
 import CloseButton from "@/components/CloseButton";
+import CtaPrimaryButton from "@/components/CtaPrimaryButton";
 import PrivacyPolicyPopup from "@/components/PrivacyPolicyPopup";
 import TermsOfServicePopup from "@/components/TermsOfServicePopup";
 import ModalOverlay from "@/components/ModalOverlay";
@@ -154,7 +155,7 @@ export default function UploadPage() {
           <div className="relative">
             <AssetImg src={A.sample} alt="" aria-hidden className="pointer-events-none z-20 absolute -right-4 -top-16 sm:-top-20 w-[120px] sm:w-[160px] object-contain drop-shadow-md" />
             <Signboard className="mb-0">
-              <div className="px-12 pb-4 pt-4">
+              <div className="px-8 pb-4 pt-4">
                 <p className="text-center text-xl font-bold leading-snug text-brand-blue">請選擇自拍或上傳一張照片</p>
 
                 <SlantedBorder className="py-3" />
@@ -250,9 +251,9 @@ export default function UploadPage() {
 
           <div className="relative z-30 w-[70%] mx-auto -mt-4">
             {error && <p className="mb-2 text-center text-xs text-red-600 drop-shadow-sm">{error}</p>}
-            <button type="button" onClick={() => void handleUpload()} disabled={!canSubmit} className="upload-cta block w-full disabled:cursor-not-allowed">
+            <CtaPrimaryButton variant="upload" onClick={() => void handleUpload()} disabled={!canSubmit}>
               {uploading ? "上傳中…" : "開始製作"}
-            </button>
+            </CtaPrimaryButton>
           </div>
         </div>
 

@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import ActivityRulesPopup from "@/components/ActivityRulesPopup";
+import CtaPrimaryButton from "@/components/CtaPrimaryButton";
 import { useAuth } from "@/contexts/AuthContext";
 
 const A = {
@@ -63,9 +64,9 @@ export default function HomePage() {
 
             {isMock && <p className="mb-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-700">開發模式（非 LINE 環境）</p>}
 
-            <button type="button" className="home-cta z-10 absolute -bottom-8 left-0 right-0 w-full max-w-[320px] disabled:cursor-not-allowed disabled:opacity-50" onClick={handleStart} disabled={loading}>
+            <CtaPrimaryButton type="button" className="home-cta z-10 absolute -bottom-8 left-0 right-0 w-full max-w-[320px] disabled:cursor-not-allowed disabled:opacity-50" onClick={handleStart} disabled={loading}>
               {loading ? "處理中…" : "我要參加"}
-            </button>
+            </CtaPrimaryButton>
           </div>
         </div>
       </section>

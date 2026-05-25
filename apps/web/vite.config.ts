@@ -21,16 +21,23 @@ export default defineConfig({
       "/api": {
         target: apiProxyTarget,
         changeOrigin: true,
+        // 讓後端 public_image_url 能組出 https://{ngrok}/img/...
+        xfwd: true,
       },
       "/img": {
         target: apiProxyTarget,
         changeOrigin: true,
+        xfwd: true,
       },
       "/docs": {
         target: apiProxyTarget,
         changeOrigin: true,
       },
       "/openapi.json": {
+        target: apiProxyTarget,
+        changeOrigin: true,
+      },
+      "/tools": {
         target: apiProxyTarget,
         changeOrigin: true,
       },

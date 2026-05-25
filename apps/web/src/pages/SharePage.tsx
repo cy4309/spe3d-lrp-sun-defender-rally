@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { QRCodeSVG } from "qrcode.react";
 import ActivityRulesPopup from "@/components/ActivityRulesPopup";
+import CtaPrimaryButton from "@/components/CtaPrimaryButton";
 import ModalOverlay from "@/components/ModalOverlay";
 import Signboard from "@/components/Signboard";
 import SlantedBorder from "@/components/SlantedBorder";
@@ -85,9 +86,9 @@ function SharePopup({ onClose, onConfirm, sharing }: { onClose: () => void; onCo
       <>
         <img src={A.shareBubble} alt="分享應援活動 參加抽籤！" className="w-full" />
         <div className="mt-3 px-2">
-          <button type="button" className="cta-primary w-full py-4 text-[17px] tracking-widest disabled:opacity-40" onClick={onConfirm} disabled={sharing}>
+          <CtaPrimaryButton className="tracking-widest" onClick={onConfirm} disabled={sharing}>
             {sharing ? "分享中…" : "立即分享 >>"}
-          </button>
+          </CtaPrimaryButton>
         </div>
       </>
     </ModalOverlay>
@@ -383,9 +384,9 @@ export default function SharePage() {
 
           {/* CTA 按鈕區 */}
           <div className="mb-4 space-y-2.5">
-            <button type="button" className="cta-primary w-full py-4 text-[17px] tracking-[0.06em] disabled:opacity-40" onClick={() => setShowSharePopup(true)} disabled={sharing}>
+            <CtaPrimaryButton className="tracking-[0.06em]" onClick={() => setShowSharePopup(true)} disabled={sharing}>
               {sharing ? "分享中…" : "分享活動 參加抽籤"}
-            </button>
+            </CtaPrimaryButton>
 
             <button type="button" className="share-cta disabled:opacity-50" onClick={() => handleDiscountClick("momo")} disabled={claiming}>
               領取 momo 折扣碼
@@ -404,20 +405,25 @@ export default function SharePage() {
           {shareErr && <p className="mb-2 text-center text-xs text-red-600 drop-shadow-sm">{shareErr}</p>}
           {claimErr && <p className="mb-2 text-center text-xs text-red-600 drop-shadow-sm">{claimErr}</p>}
 
-          {/* 活動日期及指定地點 Signboard */}
-          <Signboard className="mb-4">
-            <div className="px-8 py-5">
-              <h2 className="mb-1 text-center text-lg font-black text-gray-900">活動日期及指定地點</h2>
-              <SlantedBorder className="mb-4" />
-              <div className="space-y-4">
-                {VENUES.map((venue) => (
-                  <VenueBlock key={venue.title} venue={venue} onMapClick={() => setShowRules(true)} />
-                ))}
+          {/* 活動日期及指定地點 + picbot（同一層，機台圖略疊在看板底部） */}
+          <div className="relative mb-6">
+            <Signboard className="relative z-10 mb-0">
+              <div className="px-8 pb-16 pt-5">
+                <h2 className="mb-1 text-center text-lg font-black text-gray-900">活動日期及指定地點</h2>
+                <SlantedBorder className="mb-4" />
+                <div className="space-y-4">
+                  {VENUES.map((venue) => (
+                    <VenueBlock key={venue.title} venue={venue} onMapClick={() => setShowRules(true)} />
+                  ))}
+                </div>
               </div>
-            </div>
-          </Signboard>
-
-          <img src={A.picbot} alt="活動派樣機台" className="mx-auto block w-[88%] max-w-[320px]" />
+            </Signboard>
+            <img
+              src={A.picbot}
+              alt="活動派樣機台"
+              className="relative z-20 mx-auto block w-[88%] max-w-[320px] -mt-12"
+            />
+          </div>
         </div>
 
         {showSharePopup && <SharePopup onClose={() => setShowSharePopup(false)} onConfirm={() => void handleShare()} sharing={sharing} />}
