@@ -10,6 +10,7 @@ import Signboard, { SIGNBOARD_BORDER_GRADIENT } from "@/components/Signboard";
 import SlantedBorder from "@/components/SlantedBorder";
 import { useAuth } from "@/contexts/AuthContext";
 import { ApiError, apiPostForm } from "@/lib/api";
+import { logMockPostForm } from "@/lib/mockApi";
 
 const A = {
   bg: "/assets/upload-gen-page/pic_genAI_bg_1.png",
@@ -108,7 +109,15 @@ export default function UploadPage() {
     try {
       if (isMock) {
         await new Promise((r) => setTimeout(r, 800));
-        navigate("/processing/mock-job-id");
+        const data = logMockPostForm(
+          "/api/v1/jobs",
+          {
+            image: file?.name ?? "(mock 無檔案)",
+            user_campaign_id: userCampaignId,
+          },
+          { job_id: "mock-job-id", status: "queued", polling_interval_ms: 2000 },
+        );
+        navigate(`/processing/${data.job_id}`);
         return;
       }
       const form = new FormData();

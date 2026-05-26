@@ -121,17 +121,41 @@ export const apiBaseUrl = API_BASE;
 
 const CAMPAIGN_CODE = (import.meta.env.VITE_CAMPAIGN_CODE as string) || "";
 
-/** 上報頁面瀏覽（失敗不影響使用者流程） */
+/** 上報頁面瀏覽（失敗不影響使用者流程；不走 handleResponse，避免 401 清 token） */
 export async function recordPageView(path: string): Promise<void> {
   if (!CAMPAIGN_CODE) return;
+  if (import.meta.env.VITE_MOCK_MODE === "true") {
+    if (import.meta.env.DEV) {
+      const { logMockSkip } = await import("@/lib/mockApi");
+      logMockSkip("POST /api/v1/analytics/page-view", "VITE_MOCK_MODE", {
+        path,
+        campaign_code: CAMPAIGN_CODE,
+      });
+    }
+    return;
+  }
+  const url = new URL(`${API_BASE}/api/v1/analytics/page-view`, window.location.origin);
   try {
-    const url = new URL(`${API_BASE}/api/v1/analytics/page-view`, window.location.origin);
-    await fetch(url.toString(), {
+    const res = await fetch(url.toString(), {
       method: "POST",
       headers: { "Content-Type": "application/json", ...authHeaders() },
       body: JSON.stringify({ campaign_code: CAMPAIGN_CODE, path }),
     });
-  } catch {
-    /* ignore */
+    if (res.ok) {
+      if (import.meta.env.DEV) console.log(`[api] ${url}`, { recorded: true, path });
+      return;
+    }
+    const body = await res.text().catch(() => "");
+    if (import.meta.env.DEV) {
+      console.warn(
+        `[api] page-view ${res.status} ${url}`,
+        body || "(empty)",
+        "— 常見原因：API 未啟動、ngrok 未指到 5173、或 proxy 連不到 api:8000",
+      );
+    }
+  } catch (e) {
+    if (import.meta.env.DEV) {
+      console.warn(`[api] page-view network error ${url}`, e);
+    }
   }
 }

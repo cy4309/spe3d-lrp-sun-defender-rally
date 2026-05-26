@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { ApiError, apiGet, apiPost } from "@/lib/api";
+import { logMockGet } from "@/lib/mockApi";
 
 const POLL_MS = parseInt(import.meta.env.VITE_POLLING_INTERVAL_MS ?? "2000", 10);
 const TIMEOUT_MS = 60_000;
@@ -41,7 +42,20 @@ export default function ProcessingPage() {
   useEffect(() => {
     const carousel = setInterval(() => setIdx((i) => (i + 1) % CAROUSEL.length), 3000);
     if (isMock) {
-      const t = setTimeout(() => navigate("/result"), 3000);
+      const t = setTimeout(() => {
+        logMockGet(`/api/v1/jobs/${jobId}`, undefined, {
+          job_id: jobId,
+          status: "succeeded",
+          result_image_url: `${window.location.origin}/assets/line/demo.png`,
+          redeem_code: {
+            code: "MOCKQR01",
+            qr_payload: "https://example.com/redeem?code=MOCKQR01",
+            status: "unused",
+            expires_at: "2026-08-31T23:59:00+08:00",
+          },
+        });
+        navigate("/result");
+      }, 3000);
       return () => { clearInterval(carousel); clearTimeout(t); };
     }
     const poll = async () => {
